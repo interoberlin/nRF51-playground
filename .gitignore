@@ -1,0 +1,12 @@
+*~
+.*.swp
+.lock.*
+
+main
+
+*.o
+*.out
+*.elf
+*.bin
+*.hex
+*.map
