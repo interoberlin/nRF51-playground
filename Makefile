@@ -6,7 +6,7 @@ TOOLCHAIN_PATH   = /usr/bin/
 TOOLCHAIN_PREFIX = arm-none-eabi
 AS      = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-as
 CC      = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-gcc
-LD      = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-gcc
+LD      = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-ld
 OBJCOPY = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-objcopy
 OBJDUMP = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-objdump
 SIZE    = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-size
@@ -24,9 +24,8 @@ OUTPUT_NAME = main
 # Compiler and Linker setup
 #
 LINKER_SCRIPT = gcc_nrf51_blank.ld
-CPUFLAGS = -mcpu=cortex-m0 -mthumb -mfloat-abi=soft
-CFLAGS   = -std=gnu99 -Wall
-LDFLAGS  = -T $(LINKER_SCRIPT) -Wl,-Map=$(OUTPUT_NAME).map
+CFLAGS   += -std=gnu99 -Wall -mcpu=cortex-m0 -mthumb -mfloat-abi=soft
+LDFLAGS  += -L /usr/lib/gcc/arm-none-eabi/4.8/armv6-m/ -L /usr/lib/arm-none-eabi/newlib/armv6-m/ -T $(LINKER_SCRIPT) -Map $(OUTPUT_NAME).map
 
 HEX = $(OUTPUT_NAME).hex
 ELF = $(OUTPUT_NAME).elf
@@ -38,10 +37,10 @@ BIN = $(OUTPUT_NAME).bin
 all: $(OBJS) $(HEX)
 
 %.o: %.c
-	$(CC) $(CPUFLAGS) $(CFLAGS) $(LDFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(ELF): $(OBJS)
-	$(LD) $(CPUFLAGS) $(LDFLAGS) $(OBJS) -o $(ELF)
+	$(LD) $(LDFLAGS) $(OBJS) -o $(ELF)
 	$(SIZE) $(ELF)
 
 $(HEX): $(ELF)
@@ -71,3 +70,5 @@ debug:
         monitor reset                           \n\
         continue" > $(GDB)
 
+clean:
+	rm -f main *.o *.out *.bin *.elf *.hex *.map
