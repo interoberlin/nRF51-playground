@@ -12,9 +12,7 @@
 
 #define LED_PIN 21
 
-void _exit() {};
-
-int main(void)
+void _start()
 {
     uint8_t output_state = 0;
     
@@ -29,6 +27,4 @@ int main(void)
         output_state = (output_state + 1) & 1;
         nrf_delay_ms(100);
     }
-      
-    return 0;
 }

@@ -16,8 +16,8 @@ OPENOCD = /home/code/openocd/src/openocd
 #
 # Project setup
 #
-SRCS = system_nrf51.c nrf_delay.c main.c
-OBJS = system_nrf51.o nrf_delay.o main.o
+SRCS = gcc_startup_nrf51.s system_nrf51.c nrf_delay.c main.c
+OBJS = gcc_startup_nrf51.o system_nrf51.o nrf_delay.o main.o
 OUTPUT_NAME = main
 
 #
@@ -36,7 +36,7 @@ BIN = $(OUTPUT_NAME).bin
 #
 all: $(OBJS) $(HEX)
 
-%.o: %.c
+%.o: %.c %s
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(ELF): $(OBJS)
@@ -52,8 +52,9 @@ $(BIN): $(ELF)
 erase:
 	$(OPENOCD) -c "init ; reset halt ; nrf51 mass_erase ; shutdown"
 
+START_ADDRESS = $($(OBJDUMP) -h $(ELF) -j .text | grep .text | awk '{print $$4}')
+
 flash: $(BIN)
-	START_ADDRESS = $($(OBJDUMP) -h $(ELF) -j .text | grep .text | awk '{print $$4}')
 	$(OPENOCD) -c "program $(BIN) $(STARTADDRESS) verify"
 
 pinreset:
