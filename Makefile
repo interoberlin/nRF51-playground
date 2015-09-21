@@ -12,28 +12,40 @@ OBJDUMP = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-objdump
 SIZE    = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-size
 GDB     = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-gdb
 OPENOCD = /home/code/openocd/src/openocd
+OPENOCD_CFG = openocd.cfg
 
 #
 # Project setup
 #
-SRCS = gcc_startup_nrf51.s system_nrf51.c nrf_delay.c main.c
-OBJS = gcc_startup_nrf51.o system_nrf51.o nrf_delay.o main.o
+SRCS = nrf51_startup.c system_nrf51.c nrf_delay.c main.c
+OBJS = nrf51_startup.o system_nrf51.o nrf_delay.o main.o
 OUTPUT_NAME = main
 
 #
 # Compiler and Linker setup
 #
-LINKER_SCRIPT = gcc_nrf51_blank.ld
-CFLAGS   += -std=gnu99 -Wall -mcpu=cortex-m0 -mthumb -mfloat-abi=soft
-LDFLAGS  += -L /usr/lib/gcc/arm-none-eabi/4.8/armv6-m/ -L /usr/lib/arm-none-eabi/newlib/armv6-m/ -T $(LINKER_SCRIPT) -Map $(OUTPUT_NAME).map
+CFLAGS += -std=gnu99 -Wall -g -mcpu=cortex-m0 -mthumb -mabi=aapcs -mfloat-abi=soft
+# keep every function in separate section. This will allow linker to dump unused functions
+CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
+CFLAGS += -fno-builtin --short-enums
 
-HEX = $(OUTPUT_NAME).hex
-ELF = $(OUTPUT_NAME).elf
-BIN = $(OUTPUT_NAME).bin
+LINKER_SCRIPT = nrf51.ld
+LDFLAGS += -L /usr/lib/gcc/arm-none-eabi/4.8/armv6-m/
+LDFLAGS += -L /usr/lib/arm-none-eabi/newlib/armv6-m/
+LDFLAGS += -T $(LINKER_SCRIPT)
+LDFLAGS += -Map $(OUTPUT_NAME).map
+
 
 #
 # Makefile build targets
 #
+HEX = $(OUTPUT_NAME).hex
+ELF = $(OUTPUT_NAME).elf
+BIN = $(OUTPUT_NAME).bin
+
+clean:
+	rm -f main *.o *.out *.bin *.elf *.hex *.map
+
 all: $(OBJS) $(HEX)
 
 %.o: %.c %s
@@ -49,27 +61,28 @@ $(HEX): $(ELF)
 $(BIN): $(ELF)
 	$(OBJCOPY) -Obinary $(ELF) $(BIN)
 
-erase:
-	$(OPENOCD) -c "init ; reset halt ; nrf51 mass_erase ; shutdown"
+#START_ADDRESS = $($(OBJDUMP) -h $(ELF) -j .text | grep .text | awk '{print $$4}')
 
-START_ADDRESS = $($(OBJDUMP) -h $(ELF) -j .text | grep .text | awk '{print $$4}')
+erase:
+	$(OPENOCD) -c "set WORKAREASIZE 0;" -f $(OPENOCD_CFG) -c "init; reset halt; nrf51 mass_erase; shutdown;"
 
 flash: $(BIN)
-	$(OPENOCD) -c "program $(BIN) $(STARTADDRESS) verify"
+	$(OPENOCD) -c "set WORKAREASIZE 0;" -f $(OPENOCD_CFG) -c "init; reset halt; program $(BIN) $(STARTADDRESS) verify; shutdown;"
 
 pinreset:
-	$(OPENOCD) -c "init ; reset halt ; mww 0x4001e504 2 ; mww 0x40000544 1 ; reset ; shutdown"
+	# mww: write word to memory
+	# das funktioniert so nicht, falsche Adresse:
+	#$(OPENOCD) -f $(OPENOCD_CFG) -c "init; reset halt; sleep 1; mww phys 0x4001e504 2; mww 0x40000544 1; reset; shutdown;"
 
 debug:
-	$(OPENOCD)
-	echo -e -n "target remote localhost:3333    \n\
-        monitor reset halt                      \n\
-        file $(ELF)                             \n\
-        load                                    \n\
-        b main                                  \n\
-        b app_error_handler                     \n\
-        monitor reset                           \n\
-        continue" > $(GDB)
-
-clean:
-	rm -f main *.o *.out *.bin *.elf *.hex *.map
+	$(OPENOCD) -c "set WORKAREASIZE 0;" -f $(OPENOCD_CFG)
+	
+gdb:
+	echo "target remote localhost:3333    \n\
+          monitor reset halt              \n\
+          file $(ELF)                     \n\
+          load                            \n\
+          b _start                        \n\
+          monitor reset                   \n\
+          continue                        \n\
+          set interactive-mode on" | $(GDB)

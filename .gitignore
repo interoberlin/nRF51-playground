@@ -10,3 +10,7 @@ main
 *.bin
 *.hex
 *.map
+
+.cproject
+.project
+.settings/
