@@ -1,5 +1,12 @@
 
 #
+# Makefile for nRF51 projects
+#
+# Author: Matthias Bock <mail@matthiasbock.net>
+# License: GNU GPLv3
+#
+ 
+#
 # Toolchain setup
 #
 TOOLCHAIN_PATH   = /usr/bin/
