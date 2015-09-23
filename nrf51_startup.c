@@ -1,3 +1,4 @@
+
 /*
  * Startup code for the nRF51
  * Required to setup the ARM Cortex M0 before it can be used
@@ -80,9 +81,10 @@ void SWI5_Handler()         WEAK_ALIAS(Default_Handler);
  * Exception vector table
  * http://community.arm.com/docs/DOC-8769
  */
-void *vectors[] __attribute__ ((section(".isr_vector"))) =
+void *vectors[] __attribute__ ((section(".vectors"))) =
 {
     &stack_end,
+
     Reset_Handler,
     NMI_Handler,
     HardFault_Handler,

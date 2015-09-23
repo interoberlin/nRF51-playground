@@ -1,3 +1,4 @@
+
 /*
  * GCC linker script for the nRF51
  *
@@ -5,6 +6,7 @@
  * License: GNU GPLv3
  */
 
+/* Code execution starts in the Reset_Handler() */ 
 ENTRY(Reset_Handler)
 
 /*
@@ -34,7 +36,7 @@ SECTIONS
     .text :
     {
         code_begin = .;
-        nrf51_startup.o(.isr_vector)
+        nrf51_startup.o(.vectors)
         *(.text*)
         code_end = .;
     } > FLASH
