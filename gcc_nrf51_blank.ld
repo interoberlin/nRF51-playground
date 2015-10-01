@@ -8,7 +8,7 @@
  */
 MEMORY
 {
-  FLASH (rx) : ORIGIN = 0x0, LENGTH = 0x40000 /* 256k */
+  FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 0x40000 /* 256k */
   RAM  (rwx) : ORIGIN = 0x20000000, LENGTH = 0x8000 /* 32k */
 }
 INCLUDE "gcc_nrf51_common.ld"
