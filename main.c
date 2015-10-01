@@ -4,6 +4,8 @@
 * Each LED is set on one at a time and each state lasts 100 milliseconds.
 */
 
+//#include <stdio.h>
+//#include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -20,15 +22,16 @@ int main()
     
     nrf_gpio_pin_dir_set(LED_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
     
+    // setup UART
     uart_disable;
     nrf_gpio_pin_dir_set(30, NRF_GPIO_PIN_DIR_OUTPUT);
-    select_pin_as_TXD(30);
-    select_pin_as_RXD(PIN_DISABLE);
-    select_pin_as_RTS(PIN_DISABLE);
-    select_pin_as_CTS(PIN_DISABLE);
-    set_baud(baud_115200);
-    set_parity_exclude;
-    disable_flow_control;
+    uart_select_pin_as_TXD(30);
+    uart_select_pin_as_RXD(UART_PIN_DISABLE);
+    uart_select_pin_as_RTS(UART_PIN_DISABLE);
+    uart_select_pin_as_CTS(UART_PIN_DISABLE);
+    uart_set_baud(baud_115200);
+    uart_set_parity_exclude;
+    uart_disable_flow_control;
     uart_enable;
     
     while(true)
@@ -43,8 +46,7 @@ int main()
             nrf_delay_ms(100);
         }
         
-        write_TXD(0x65);
-        start_transmitter;
+        uart_send("Test-123 Hallo, Welt!\n", 22);
     }
 
     return 0;

@@ -56,33 +56,113 @@
 #define baud_1M      0x10000000
 
 
-// Writing to registers - Makros
+/*
+ * Writing to registers - Makros
+ */
 
-#define uart_disable            *(uint32_t*) (UART_BASE+ENABLE) =  (*(uint32_t*) (UART_BASE+ENABLE)) & 0xFFFFFFF8
-#define uart_enable             *(uint32_t*) (UART_BASE+ENABLE) = ((*(uint32_t*) (UART_BASE+ENABLE)) & 0xFFFFFFF8) + 0x4
+// Tasks
+#define uart_start_receiver             *(uint32_t*) (UART_BASE+STARTRX) = 1
+#define uart_stop_receiver              *(uint32_t*) (UART_BASE+STOPRX)  = 1
+#define uart_start_transmitter          *(uint32_t*) (UART_BASE+STARTTX) = 1
+#define uart_stop_transmitter           *(uint32_t*) (UART_BASE+STOPTX)  = 1
+#define uart_stop_transmitter           *(uint32_t*) (UART_BASE+STOPTX)  = 1
+
+
+// Events
+#define uart_event_CTS                  *(uint32_t*) (UART_BASE+CTS)
+#define uart_event_NCTS                 *(uint32_t*) (UART_BASE+NCTS)
+#define uart_event_RXDRDY               *(uint32_t*) (UART_BASE+RXDRDY)
+#define uart_event_TXDRDY               *(uint32_t*) (UART_BASE+TXDRDY)
+#define uart_event_ERROR                *(uint32_t*) (UART_BASE+ERROR)
+#define uart_event_RXTO                 *(uint32_t*) (UART_BASE+RXTO)
+
+// write a zero to clear the event
+#define clear_event(event)              event = 0
+
+// Interrupts
+#define UART_ISR_POINTER_ADDRESS        (16+2)*4
+#define set_uart_handler(pointer)       *(uint32_t*) (UART_ISR_POINTER_ADDRESS) = (uint32_t) pointer
+
+#define uart_interrupt_enable_TXDRDY    *(uint32_t*) (UART_BASE+INTENSET) = 0x00000080
+#define uart_interrupt_disable_TXDRDY   *(uint32_t*) (UART_BASE+INTENCLR) = 0x00000080
+
+
+// Configuration
+#define uart_disable                    *(uint32_t*) (UART_BASE+ENABLE) =  (*(uint32_t*) (UART_BASE+ENABLE)) & 0xFFFFFFF8
+#define uart_enable                     *(uint32_t*) (UART_BASE+ENABLE) = ((*(uint32_t*) (UART_BASE+ENABLE)) & 0xFFFFFFF8) + 0x4
 
 // only configure pins while UART is disabled
-#define select_pin_as_TXD(pin)  *(uint32_t*) (UART_BASE+PSELTXD) = pin
-#define select_pin_as_RXD(pin)  *(uint32_t*) (UART_BASE+PSELRXD) = pin
-#define select_pin_as_RTS(pin)  *(uint32_t*) (UART_BASE+PSELRTS) = pin
-#define select_pin_as_CTS(pin)  *(uint32_t*) (UART_BASE+PSELCTS) = pin
-#define PIN_DISABLE             0xFFFFFFFF
+#define uart_select_pin_as_TXD(pin)     *(uint32_t*) (UART_BASE+PSELTXD) = pin
+#define uart_select_pin_as_RXD(pin)     *(uint32_t*) (UART_BASE+PSELRXD) = pin
+#define uart_select_pin_as_RTS(pin)     *(uint32_t*) (UART_BASE+PSELRTS) = pin
+#define uart_select_pin_as_CTS(pin)     *(uint32_t*) (UART_BASE+PSELCTS) = pin
 
-#define read_RXD                *(uint32_t*) (UART_BASE+RXD)
-#define write_TXD(b)            *(uint32_t*) (UART_BASE+TXD) = b
+// signal shall not be externalized to any pin
+#define UART_PIN_DISABLE                0xFFFFFFFF
 
-#define set_baud(rate)          *(uint32_t*) (UART_BASE+BAUDRATE) = rate
+#define uart_read_RXD                   *(uint32_t*) (UART_BASE+RXD)
+#define uart_write_TXD(b)               *(uint32_t*) (UART_BASE+TXD) = b
 
-#define set_parity_exclude      *(uint32_t*) (UART_BASE+CONFIG) =  (*(uint32_t*) (UART_BASE+CONFIG)) & 0xFFFFFFF1
-#define set_parity_include      *(uint32_t*) (UART_BASE+CONFIG) = ((*(uint32_t*) (UART_BASE+CONFIG)) & 0xFFFFFFF1) + 0xE
+#define uart_set_baud(rate)             *(uint32_t*) (UART_BASE+BAUDRATE) = rate
 
-#define disable_flow_control    *(uint32_t*) (UART_BASE+CONFIG) =  (*(uint32_t*) (UART_BASE+CONFIG)) & 0xFFFFFFFE
-#define enable_flow_control     *(uint32_t*) (UART_BASE+CONFIG) = ((*(uint32_t*) (UART_BASE+CONFIG)) & 0xFFFFFFFE) + 0x1
+#define uart_set_parity_exclude         *(uint32_t*) (UART_BASE+CONFIG) =  (*(uint32_t*) (UART_BASE+CONFIG)) & 0xFFFFFFF1
+#define uart_set_parity_include         *(uint32_t*) (UART_BASE+CONFIG) = ((*(uint32_t*) (UART_BASE+CONFIG)) & 0xFFFFFFF1) + 0xE
 
-#define start_receiver          *(uint32_t*) (UART_BASE+STARTRX) = 1
-#define stop_receiver           *(uint32_t*) (UART_BASE+STOPRX)  = 1
-#define start_transmitter       *(uint32_t*) (UART_BASE+STARTTX) = 1
-#define stop_transmitter        *(uint32_t*) (UART_BASE+STOPTX)  = 1
+#define uart_disable_flow_control       *(uint32_t*) (UART_BASE+CONFIG) =  (*(uint32_t*) (UART_BASE+CONFIG)) & 0xFFFFFFFE
+#define uart_enable_flow_control        *(uint32_t*) (UART_BASE+CONFIG) = ((*(uint32_t*) (UART_BASE+CONFIG)) & 0xFFFFFFFE) + 0x1
 
+
+/*
+ * UART functions
+ */
+ 
+volatile char*      uart_tx_buffer;
+volatile uint8_t    uart_tx_buffer_length = 0;
+volatile uint8_t    uart_tx_buffer_cursor = 0;
+
+/*
+ * Interrupt service routine, invoked by the processor
+ * see also: UART_Handler()
+ */
+static void uart_isr()
+{
+    if (uart_event_TXDRDY != 0)
+    {
+        clear_event(uart_event_TXDRDY);
+        
+        if (uart_tx_buffer_cursor >= uart_tx_buffer_length-1)
+            // disable future interrupts on a TXDRDY event
+            uart_interrupt_disable_TXDRDY;
+
+        if (uart_tx_buffer_cursor < uart_tx_buffer_length)
+            // output one byte to UART
+            uart_write_TXD( *(uart_tx_buffer+(uart_tx_buffer_cursor++)) );
+    }
+}
+
+void uart_send(char* s, uint8_t len)
+{
+    uart_stop_transmitter;
+    
+    // copy function argument to UART TX buffer
+    // TODO
+    
+    // directly use argument as TX buffer
+    uart_tx_buffer = s;
+    uart_tx_buffer_length = len;
+    uart_tx_buffer_cursor = 0;
+    
+    // setup the above interrupt service routine in the exception vector table
+    set_uart_handler(&uart_isr);
+
+    // enable transmitter ready interrupt
+    uart_interrupt_enable_TXDRDY;
+
+    // enable transmission 
+    uart_start_transmitter;
+    
+    // initiate transmission by writing the first byte to tranmitter buffer
+    uart_write_TXD( *(uart_tx_buffer+(uart_tx_buffer_cursor++)) );
+}
 
 #endif // NRF51_UART_H
