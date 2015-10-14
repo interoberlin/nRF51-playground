@@ -81,7 +81,7 @@
 
 // Interrupts
 #define UART_ISR_POINTER_ADDRESS        (16+2)*4
-#define set_uart_handler(pointer)       *(uint32_t*) (UART_ISR_POINTER_ADDRESS) = (uint32_t) pointer
+#define set_uart_handler(pointer)       *(uint32_t*) (UART_ISR_POINTER_ADDRESS) = (uint32_t) pointer + 1 // +1 to indicate Thumb instruction set
 
 #define uart_interrupt_enable_TXDRDY    *(uint32_t*) (UART_BASE+INTENSET) = 0x00000080
 #define uart_interrupt_disable_TXDRDY   *(uint32_t*) (UART_BASE+INTENCLR) = 0x00000080
@@ -115,15 +115,16 @@
 /*
  * UART functions
  */
- 
-volatile char*      uart_tx_buffer;
-volatile uint8_t    uart_tx_buffer_length = 0;
-volatile uint8_t    uart_tx_buffer_cursor = 0;
+
+volatile char*      uart_tx_buffer = 0;
+volatile uint32_t   uart_tx_buffer_length = 0;
+volatile uint32_t   uart_tx_buffer_cursor = 0;
 
 /*
  * Interrupt service routine, invoked by the processor
  * see also: UART_Handler()
  */
+ 
 static void uart_isr()
 {
     if (uart_event_TXDRDY != 0)
