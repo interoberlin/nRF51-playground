@@ -168,5 +168,11 @@ void Default_Handler()
 {
     // sleep mode: wait for interrupt
     // http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0497a/BABHHGEB.html
-    asm("wfi");
+    //asm("wfi");
+    
+    // read the interrupt control state register (ICSR)
+    // http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0497a/Cihfaaha.html
+    uint32_t ICSR = *((uint32_t volatile *)0xE000ED04);
+    uint32_t VECTACTIVE  = ICSR & 0x0000003f;
+    uint32_t VECTPENDING = ICSR & 0x0003f000;
 }

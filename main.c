@@ -1,9 +1,4 @@
 
-/**
-* This example shows how to configure GPIO pins as outputs which can also be used to drive LEDs.
-* Each LED is set on one at a time and each state lasts 100 milliseconds.
-*/
-
 //#include <stdio.h>
 //#include <string.h>
 #include <stdbool.h>
@@ -12,20 +7,20 @@
 #include "nrf_delay.h"
 #include "nrf_gpio.h"
 
+
+/*
+ * RS-232 serial port (UART)
+ */
+
 #include "uart.h"
 
-#define LED_PIN 21
+#define PIN_UART_TXD 30
 
-int main()
+void setup_uart()
 {
-    uint8_t output_state = 0;
-    
-    nrf_gpio_pin_dir_set(LED_PIN, NRF_GPIO_PIN_DIR_OUTPUT);
-    
-    // setup UART
     uart_disable;
-    nrf_gpio_pin_dir_set(30, NRF_GPIO_PIN_DIR_OUTPUT);
-    uart_select_pin_as_TXD(30);
+    nrf_gpio_pin_dir_set(PIN_UART_TXD, NRF_GPIO_PIN_DIR_OUTPUT);
+    uart_select_pin_as_TXD(PIN_UART_TXD);
     uart_select_pin_as_RXD(UART_PIN_DISABLE);
     uart_select_pin_as_RTS(UART_PIN_DISABLE);
     uart_select_pin_as_CTS(UART_PIN_DISABLE);
@@ -33,20 +28,77 @@ int main()
     uart_set_parity_exclude;
     uart_disable_flow_control;
     uart_enable;
+}
+
+
+/*
+ * Color LEDs
+ */
+
+#define PIN_LED_RED_BRIGHT  1
+#define PIN_LED_GREEN       2
+#define PIN_LED_YELLOW_1    3
+#define PIN_LED_WHITE_1     4
+#define PIN_LED_YELLOW_2    5
+#define PIN_LED_BLUE        6
+#define PIN_LED_RED         7
+#define PIN_LED_WHITE_2     8
+
+void setup_led_pins()
+{
+    nrf_gpio_pin_dir_set(PIN_LED_RED_BRIGHT,    NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_dir_set(PIN_LED_GREEN,         NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_dir_set(PIN_LED_YELLOW_1,      NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_dir_set(PIN_LED_WHITE_1,       NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_dir_set(PIN_LED_YELLOW_2,      NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_dir_set(PIN_LED_BLUE,          NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_dir_set(PIN_LED_RED,           NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_dir_set(PIN_LED_WHITE_2,       NRF_GPIO_PIN_DIR_OUTPUT);
+}
+
+#define on(led)     nrf_gpio_pin_set(led)
+#define off(led)    nrf_gpio_pin_clear(led)
+
+
+int main()
+{
+    setup_uart();
+
+    setup_led_pins();
     
     while(true)
     {
-        for (int i=0; i<10; i++)
-        {
-            if (output_state == 1)
-                nrf_gpio_pin_set(LED_PIN);
-            else
-                nrf_gpio_pin_clear(LED_PIN);
-            output_state = (output_state + 1) & 1;
-            nrf_delay_ms(100);
-        }
+        off(PIN_LED_WHITE_2);
+        on(PIN_LED_RED_BRIGHT);
+        nrf_delay_ms(1000);
+
+        off(PIN_LED_RED_BRIGHT);
+        on(PIN_LED_GREEN);
+        nrf_delay_ms(1000);
         
-        uart_send("Test-123 Hallo, Welt!\n", 22);
+        off(PIN_LED_GREEN);
+        on(PIN_LED_YELLOW_1);
+        nrf_delay_ms(1000);
+        
+        off(PIN_LED_YELLOW_1);
+        on(PIN_LED_WHITE_1);
+        nrf_delay_ms(1000);
+        
+        off(PIN_LED_WHITE_1);
+        on(PIN_LED_YELLOW_2);
+        nrf_delay_ms(1000);
+        
+        off(PIN_LED_YELLOW_2);
+        on(PIN_LED_BLUE);
+        nrf_delay_ms(1000);
+        
+        off(PIN_LED_BLUE);
+        on(PIN_LED_RED);
+        nrf_delay_ms(1000);
+        
+        off(PIN_LED_RED);
+        on(PIN_LED_WHITE_2);      
+        nrf_delay_ms(1000);
     }
 
     return 0;
