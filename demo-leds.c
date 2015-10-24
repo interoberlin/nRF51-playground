@@ -7,30 +7,6 @@
 #include "nrf_delay.h"
 #include "nrf_gpio.h"
 
-
-/*
- * RS-232 serial port (UART)
- */
-
-#include "uart.h"
-
-#define PIN_UART_TXD 30
-
-void setup_uart()
-{
-    uart_disable;
-    nrf_gpio_pin_dir_set(PIN_UART_TXD, NRF_GPIO_PIN_DIR_OUTPUT);
-    uart_select_pin_as_TXD(PIN_UART_TXD);
-    uart_select_pin_as_RXD(UART_PIN_DISABLE);
-    uart_select_pin_as_RTS(UART_PIN_DISABLE);
-    uart_select_pin_as_CTS(UART_PIN_DISABLE);
-    uart_set_baud(baud_115200);
-    uart_set_parity_exclude;
-    uart_disable_flow_control;
-    uart_enable;
-}
-
-
 /*
  * Color LEDs
  */
@@ -62,8 +38,6 @@ void setup_led_pins()
 
 int main()
 {
-    setup_uart();
-
     setup_led_pins();
     
     while(true)

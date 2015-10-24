@@ -1,6 +1,6 @@
 
-#ifndef NRF51_UART_H
-#define NRF51_UART_H
+#ifndef UART_H
+#define UART_H
 
 #include <stdint.h>
 
@@ -100,8 +100,8 @@
 // signal shall not be externalized to any pin
 #define UART_PIN_DISABLE                0xFFFFFFFF
 
-#define uart_read_RXD                   *(uint32_t*) (UART_BASE+RXD)
-#define uart_write_TXD(b)               *(uint32_t*) (UART_BASE+TXD) = b
+#define uart_read                       *(uint32_t*) (UART_BASE+RXD)
+#define uart_write(b)                   *(uint32_t*) (UART_BASE+TXD) = b
 
 #define uart_set_baud(rate)             *(uint32_t*) (UART_BASE+BAUDRATE) = rate
 
@@ -137,7 +137,7 @@ static void uart_isr()
 
         if (uart_tx_buffer_cursor < uart_tx_buffer_length)
             // output one byte to UART
-            uart_write_TXD( *(uart_tx_buffer+(uart_tx_buffer_cursor++)) );
+            uart_write( *(uart_tx_buffer+(uart_tx_buffer_cursor++)) );
     }
 }
 
@@ -163,7 +163,7 @@ void uart_send(char* s, uint8_t len)
     uart_start_transmitter;
     
     // initiate transmission by writing the first byte to tranmitter buffer
-    uart_write_TXD( *(uart_tx_buffer+(uart_tx_buffer_cursor++)) );
+    uart_write( *(uart_tx_buffer+(uart_tx_buffer_cursor++)) );
 }
 
-#endif // NRF51_UART_H
+#endif // UART_H

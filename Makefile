@@ -24,9 +24,9 @@ OPENOCD_CFG = openocd.cfg
 #
 # Project setup
 #
-SRCS = nrf51_startup.c system_nrf51.c nrf_delay.c main.c
-OBJS = nrf51_startup.o system_nrf51.o nrf_delay.o main.o
-OUTPUT_NAME = main
+OUTPUT_NAME = demo-uart
+SRCS = nrf51_startup.c system_nrf51.c delay.c $(OUTPUT_NAME).c
+OBJS = nrf51_startup.o system_nrf51.o delay.o $(OUTPUT_NAME).o
 
 #
 # Compiler and Linker setup
@@ -40,9 +40,6 @@ LINKER_SCRIPT = nrf51.ld
 LDFLAGS += -L /usr/lib/gcc/arm-none-eabi/4.8/armv6-m/
 LDFLAGS += -L /usr/lib/arm-none-eabi/newlib/armv6-m/
 LDFLAGS += -T $(LINKER_SCRIPT)
-LDFLAGS += -Map $(OUTPUT_NAME).map
-
-
 
 #
 # Makefile build targets
@@ -50,9 +47,6 @@ LDFLAGS += -Map $(OUTPUT_NAME).map
 HEX = $(OUTPUT_NAME).hex
 ELF = $(OUTPUT_NAME).elf
 BIN = $(OUTPUT_NAME).bin
-
-clean:
-	rm -f main *.o *.out *.bin *.elf *.hex *.map
 
 all: $(OBJS) $(HEX)
 
@@ -68,6 +62,9 @@ $(HEX): $(ELF)
 
 $(BIN): $(ELF)
 	$(OBJCOPY) -Obinary $(ELF) $(BIN)
+
+clean:
+	rm -f *.o *.out *.bin *.elf *.hex *.map main demo-leds demo-uart
 
 #START_ADDRESS = $($(OBJDUMP) -h $(ELF) -j .text | grep .text | awk '{print $$4}')
 
