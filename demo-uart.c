@@ -15,7 +15,7 @@
 
 #define PIN_UART_TXD 20
 
-void setup_uart()
+void uart_setup()
 {
     uart_disable;
     nrf_gpio_pin_dir_set(PIN_UART_TXD, NRF_GPIO_PIN_DIR_OUTPUT);
@@ -23,7 +23,7 @@ void setup_uart()
     uart_select_pin_as_RXD(UART_PIN_DISABLE);
     uart_select_pin_as_RTS(UART_PIN_DISABLE);
     uart_select_pin_as_CTS(UART_PIN_DISABLE);
-    uart_set_baud(baud_115200);
+    uart_set_baud(baud_57600);
     uart_set_parity_exclude;
     uart_disable_flow_control;
     uart_enable;
@@ -32,13 +32,12 @@ void setup_uart()
 
 int main()
 {
-    setup_uart();
+    uart_setup();
     
     while (true)
     {
-        delay_us(500000);
-        uart_write(0x65);
-        uart_start_transmitter;
+        uart_send("Hallo Welt!\xD\xA", 13);
+        delay_us(300000);
     }
 
     return 0;

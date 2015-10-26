@@ -50,6 +50,8 @@ void SysTick_Handler()      WEAK_ALIAS(Default_Handler);
 // SoC-specific ISRs
 void POWER_CLOCK_Handler()  WEAK_ALIAS(Default_Handler);
 void RADIO_Handler()        WEAK_ALIAS(Default_Handler);
+//extern void uart_isr();
+//void UART0_Handler()        WEAK_ALIAS(uart_isr);
 void UART0_Handler()        WEAK_ALIAS(Default_Handler);
 void SPI0_TWI0_Handler()    WEAK_ALIAS(Default_Handler);
 void SPI1_TWI1_Handler()    WEAK_ALIAS(Default_Handler);

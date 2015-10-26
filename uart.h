@@ -3,6 +3,23 @@
 #define UART_H
 
 #include <stdint.h>
+//#include "core_cmFunc.h"
+//#include "core_cmInstr.h"
+//#include "core_cm0.h"
+
+/*
+ * Configuration
+ */
+
+//#define UART_SEND_USING_INTERRUPTS
+
+#ifndef UART_SEND_USING_INTERRUPTS
+#include "delay.h"
+#endif
+
+/*
+ * Constants
+ */
 
 #define UART_BASE   0x40002000
 
@@ -57,7 +74,7 @@
 
 
 /*
- * Writing to registers - Makros
+ * Macros for writing data to registers
  */
 
 // Tasks
@@ -80,11 +97,12 @@
 #define clear_event(event)              event = 0
 
 // Interrupts
-#define UART_ISR_POINTER_ADDRESS        (16+2)*4
-#define set_uart_handler(pointer)       *(uint32_t*) (UART_ISR_POINTER_ADDRESS) = (uint32_t) pointer + 1 // +1 to indicate Thumb instruction set
+#define UART_INTERRUPT                          2
+#define UART_ISR_POINTER_ADDRESS                (16 + UART_INTERRUPT)*4
+#define set_uart_interrupt_handler(pointer)     *(uint32_t*) (UART_ISR_POINTER_ADDRESS) = (uint32_t) pointer // +1 to indicate Thumb instruction set
 
-#define uart_interrupt_enable_TXDRDY    *(uint32_t*) (UART_BASE+INTENSET) = 0x00000080
-#define uart_interrupt_disable_TXDRDY   *(uint32_t*) (UART_BASE+INTENCLR) = 0x00000080
+#define uart_interrupt_upon_TXDRDY_enable       *(uint32_t*) (UART_BASE+INTENSET) = 0x00000080
+#define uart_interrupt_upon_TXDRDY_disable      *(uint32_t*) (UART_BASE+INTENCLR) = 0x00000080
 
 
 // Configuration
@@ -113,57 +131,13 @@
 
 
 /*
- * UART functions
+ * The final magic
  */
 
-volatile char*      uart_tx_buffer = 0;
-volatile uint32_t   uart_tx_buffer_length = 0;
-volatile uint32_t   uart_tx_buffer_cursor = 0;
+#ifdef UART_SEND_USING_INTERRUPTS
+void uart_isr();
+#endif
 
-/*
- * Interrupt service routine, invoked by the processor
- * see also: UART_Handler()
- */
- 
-static void uart_isr()
-{
-    if (uart_event_TXDRDY != 0)
-    {
-        clear_event(uart_event_TXDRDY);
-        
-        if (uart_tx_buffer_cursor >= uart_tx_buffer_length-1)
-            // disable future interrupts on a TXDRDY event
-            uart_interrupt_disable_TXDRDY;
-
-        if (uart_tx_buffer_cursor < uart_tx_buffer_length)
-            // output one byte to UART
-            uart_write( *(uart_tx_buffer+(uart_tx_buffer_cursor++)) );
-    }
-}
-
-void uart_send(char* s, uint8_t len)
-{
-    uart_stop_transmitter;
-    
-    // copy function argument to UART TX buffer
-    // TODO
-    
-    // directly use argument as TX buffer
-    uart_tx_buffer = s;
-    uart_tx_buffer_length = len;
-    uart_tx_buffer_cursor = 0;
-    
-    // setup the above interrupt service routine in the exception vector table
-    set_uart_handler(&uart_isr);
-
-    // enable transmitter ready interrupt
-    uart_interrupt_enable_TXDRDY;
-
-    // enable transmission 
-    uart_start_transmitter;
-    
-    // initiate transmission by writing the first byte to tranmitter buffer
-    uart_write( *(uart_tx_buffer+(uart_tx_buffer_cursor++)) );
-}
+void uart_send(char* buffer, uint8_t length);
 
 #endif // UART_H

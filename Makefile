@@ -25,8 +25,8 @@ OPENOCD_CFG = openocd.cfg
 # Project setup
 #
 OUTPUT_NAME = demo-uart
-SRCS = nrf51_startup.c system_nrf51.c delay.c $(OUTPUT_NAME).c
-OBJS = nrf51_startup.o system_nrf51.o delay.o $(OUTPUT_NAME).o
+SRCS = nrf51_startup.c system_nrf51.c delay.c uart.c $(OUTPUT_NAME).c
+OBJS = nrf51_startup.o system_nrf51.o delay.o uart.o $(OUTPUT_NAME).o
 
 #
 # Compiler and Linker setup
