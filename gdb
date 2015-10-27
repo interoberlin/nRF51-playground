@@ -1,4 +1,4 @@
 #!/bin/bash
 
-arm-none-eabi-gdb demo-uart.elf
+arm-none-eabi-gdb demo_uart.elf
 

@@ -24,7 +24,7 @@ OPENOCD_CFG = openocd.cfg
 #
 # Project setup
 #
-OUTPUT_NAME = demo-uart
+OUTPUT_NAME = demo_uart
 SRCS = nrf51_startup.c system_nrf51.c delay.c uart.c $(OUTPUT_NAME).c
 OBJS = nrf51_startup.o system_nrf51.o delay.o uart.o $(OUTPUT_NAME).o
 
@@ -64,7 +64,7 @@ $(BIN): $(ELF)
 	$(OBJCOPY) -Obinary $(ELF) $(BIN)
 
 clean:
-	rm -f *.o *.out *.bin *.elf *.hex *.map main demo-leds demo-uart
+	rm -f *.o *.out *.bin *.elf *.hex *.map main demo_leds demo_uart
 
 #START_ADDRESS = $($(OBJDUMP) -h $(ELF) -j .text | grep .text | awk '{print $$4}')
 
