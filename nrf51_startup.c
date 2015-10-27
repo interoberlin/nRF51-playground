@@ -22,6 +22,9 @@ extern uint32_t data_end;
 extern uint32_t bss_begin;
 extern uint32_t bss_end;
 
+extern uint32_t heap_begin;
+extern uint32_t heap_end;
+
 extern uint32_t stack_begin;
 extern uint32_t stack_end;
 
@@ -147,20 +150,27 @@ extern int main();
  */
 void Reset_Handler()
 {
-    // copy data section from Flash to RAM
+    // copy initialized variables from flash memory to the data section in RAM
     uint8_t *src, *dst;
     src = (uint8_t*) &code_end;
     dst = (uint8_t*) &data_begin;
-    while (dst < (uint8_t *) &data_end)
+    while (dst < (uint8_t*) &data_end)
         *dst++ = *src++;
 
-    // clear the bss section
+    // clear the bss section: initialize uninitialized variables with zeros
+    // clear the heap section: memory shall be filled with zeros after malloc
     dst = (uint8_t*) &bss_begin;
-    while (dst < (uint8_t*) bss_end)
+    while (dst < (uint8_t*) &heap_end)
         *dst++ = 0;
+
+    // the stack does not need to be filled with zeros,
+    // as all pop'ed values will necessarily have previously been push'ed
 
     // all initialization is done, jump to main function
     main();
+    
+    // this point should never be reached
+    // TODO: go to deep sleep or reset
 }
 
 /*
