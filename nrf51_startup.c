@@ -174,7 +174,7 @@ void Default_Handler()
     //asm("wfi");
     
     // mentioned here for (hard-)fault debugging:
-    ICSR;
-    VECTACTIVE;
-    VECTPENDING;
+    uint32_t icsr = ICSR;
+    uint32_t active = INTACTIVE;
+    uint32_t pending = INTPENDING;
 }

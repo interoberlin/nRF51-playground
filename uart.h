@@ -11,9 +11,11 @@
  * Configuration
  */
 
-//#define UART_SEND_USING_INTERRUPTS
+#define UART_SEND_USING_INTERRUPTS
 
-#ifndef UART_SEND_USING_INTERRUPTS
+#ifdef UART_SEND_USING_INTERRUPTS
+#include "cortex_m0.h"
+#else
 #include "delay.h"
 #endif
 
@@ -98,8 +100,12 @@
 
 // Interrupts
 #define UART_INTERRUPT                          2
-#define UART_ISR_POINTER_ADDRESS                (16 + UART_INTERRUPT)*4
-#define set_uart_interrupt_handler(pointer)     *(uint32_t*) (UART_ISR_POINTER_ADDRESS) = (uint32_t) pointer // +1 to indicate Thumb instruction set
+#define UART_ISR_VECTOR_ADDRESS                 (16 + UART_INTERRUPT)*4
+// that's not working:
+//#define set_uart_interrupt_handler(pointer)     *(uint32_t*) (UART_ISR_VECTOR_ADDRESS) = (uint32_t) pointer // +1 to indicate Thumb instruction set
+
+#define uart_interrupt_enable                   interrupt_enable(UART_INTERRUPT)
+#define uart_interrupt_disable                  interrupt_disable(UART_INTERRUPT)
 
 #define uart_interrupt_upon_TXDRDY_enable       *(uint32_t*) (UART_BASE+INTENSET) = 0x00000080
 #define uart_interrupt_upon_TXDRDY_disable      *(uint32_t*) (UART_BASE+INTENCLR) = 0x00000080
@@ -131,13 +137,9 @@
 
 
 /*
- * The final magic
+ * Exported functions
  */
-
-#ifdef UART_SEND_USING_INTERRUPTS
-void uart_isr();
-#endif
-
+void UART0_Handler();
 void uart_send(char* buffer, uint8_t length);
 
 #endif // UART_H

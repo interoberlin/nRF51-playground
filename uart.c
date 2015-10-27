@@ -20,7 +20,7 @@ volatile uint32_t   uart_tx_buffer_cursor = 0;
  * attached in nrf51_startup.c
  * to be invoked by NVIC
  */
-void uart_isr()
+void UART0_Handler()
 {
     if (uart_event_TXDRDY != 0)
     {
@@ -40,32 +40,25 @@ void uart_send(char* buffer, uint8_t length)
 {
     uart_stop_transmitter;
     
-    // copy function argument to UART TX buffer
+    // copy data to internal buffer to prevent buffer changes during transmission 
     // TODO
     
-    // directly use argument as TX buffer
+    // meanwhile directly use argument as TX buffer
     uart_tx_buffer = buffer;
     uart_tx_buffer_length = length;
     uart_tx_buffer_cursor = 0;
-    
-    // setup the above interrupt service routine in the exception vector table
-    set_uart_interrupt_handler(&uart_isr);
 
-    // enable transmitter ready interrupt
+    // enable transmitter ready event interrupt
     uart_interrupt_upon_TXDRDY_enable;
 
     // enable UART interrupt
-    //  http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dai0321a/BIHBFEIB.html
-    NVIC_ClearingPending(UART_INTERRUPT);
-    NVIC_SetPriority(UART_INTERRUPT, 3);
-    NVIC_EnableIRQ(UART_INTERRUPT);
+    uart_interrupt_enable;
 
     // enable transmission 
     uart_start_transmitter;
     
     // initiate transmission by writing the first byte to tranmitter buffer
     uart_write( *(uart_tx_buffer+(uart_tx_buffer_cursor++)) );
-    delay_us(1000);
 }
 
 #else // #ifdef UART_SEND_USING_INTERRUPTS
