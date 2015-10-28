@@ -3,6 +3,7 @@
 #define UART_H
 
 #include <stdint.h>
+#include "heap.h"
 //#include "core_cmFunc.h"
 //#include "core_cmInstr.h"
 //#include "core_cm0.h"
@@ -107,9 +108,17 @@
 #define uart_interrupt_enable                   interrupt_enable(UART_INTERRUPT)
 #define uart_interrupt_disable                  interrupt_disable(UART_INTERRUPT)
 
-#define uart_interrupt_upon_TXDRDY_enable       *(uint32_t*) (UART_BASE+INTENSET) = 0x00000080
-#define uart_interrupt_upon_TXDRDY_disable      *(uint32_t*) (UART_BASE+INTENCLR) = 0x00000080
+#define uart_interrupt_upon_RXDRDY_enable       *(uint32_t*) (UART_BASE+INTENSET) = (1 << 2)
+#define uart_interrupt_upon_RXDRDY_disable      *(uint32_t*) (UART_BASE+INTENCLR) = (1 << 2)
 
+#define uart_interrupt_upon_TXDRDY_enable       *(uint32_t*) (UART_BASE+INTENSET) = (1 << 7)
+#define uart_interrupt_upon_TXDRDY_disable      *(uint32_t*) (UART_BASE+INTENCLR) = (1 << 7)
+
+#define uart_interrupt_upon_ERROR_enable        *(uint32_t*) (UART_BASE+INTENSET) = (1 << 9)
+#define uart_interrupt_upon_ERROR_disable       *(uint32_t*) (UART_BASE+INTENCLR) = (1 << 9)
+
+#define uart_interrupt_upon_RXTO_enable         *(uint32_t*) (UART_BASE+INTENSET) = (1 << 17)
+#define uart_interrupt_upon_RXTO_disable        *(uint32_t*) (UART_BASE+INTENCLR) = (1 << 17)
 
 // Configuration
 #define uart_disable                    *(uint32_t*) (UART_BASE+ENABLE) =  (*(uint32_t*) (UART_BASE+ENABLE)) & 0xFFFFFFF8
@@ -124,7 +133,7 @@
 // signal shall not be externalized to any pin
 #define UART_PIN_DISABLE                0xFFFFFFFF
 
-#define uart_read                       *(uint32_t*) (UART_BASE+RXD)
+#define uart_read                       (*(uint32_t*) (UART_BASE+RXD)) & 0x000000FF
 #define uart_write(b)                   *(uint32_t*) (UART_BASE+TXD) = b
 
 #define uart_set_baud(rate)             *(uint32_t*) (UART_BASE+BAUDRATE) = rate
@@ -140,6 +149,9 @@
  * Exported functions
  */
 void UART0_Handler();
+
 void uart_send(char* buffer, uint8_t length);
+
+uint8_t uart_receive(char* buffer, uint8_t max);
 
 #endif // UART_H
