@@ -7,7 +7,7 @@
 #
  
 #
-# Toolchain setup
+# Toolchain
 #
 TOOLCHAIN_PATH   = /usr/bin/
 TOOLCHAIN_PREFIX = arm-none-eabi
@@ -22,14 +22,7 @@ OPENOCD = /home/code/openocd/src/openocd
 OPENOCD_CFG = openocd.cfg
 
 #
-# Project setup
-#
-OUTPUT_NAME = demo_uart
-SRCS = nrf51_startup.c system_nrf51.c heap.c delay.c uart.c $(OUTPUT_NAME).c
-OBJS = nrf51_startup.o system_nrf51.o heap.o delay.o uart.o $(OUTPUT_NAME).o
-
-#
-# Compiler and Linker setup
+# Compiler and Linker
 #
 CFLAGS += -std=gnu99 -Wall -g -mcpu=cortex-m0 -mthumb -mabi=aapcs -mfloat-abi=soft
 # keep every function in separate section. This will allow linker to dump unused functions
@@ -42,31 +35,32 @@ LDFLAGS += -L /usr/lib/arm-none-eabi/newlib/armv6-m/
 LDFLAGS += -T $(LINKER_SCRIPT)
 
 #
-# Makefile build targets
+# Build targets
 #
-HEX = $(OUTPUT_NAME).hex
-ELF = $(OUTPUT_NAME).elf
-BIN = $(OUTPUT_NAME).bin
 
-all: $(OBJS) $(HEX)
+all: demo_leds.elf demo_uart.elf demo_radio.elf
+
+demo_leds.elf: nrf51_startup.o system_nrf51.o delay.o demo_leds.o
+	$(LD) $(LDFLAGS) $^ -o $@
+
+demo_uart.elf: nrf51_startup.o system_nrf51.o delay.o uart.o demo_uart.o 
+	$(LD) $(LDFLAGS) $^ -o $@
+
+demo_radio.elf: nrf51_startup.o system_nrf51.o heap.o delay.o uart.o radio.o demo_radio.o
+	$(LD) $(LDFLAGS) $^ -o $@
 
 %.o: %.c %s
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(ELF): $(OBJS)
-	$(LD) $(LDFLAGS) $(OBJS) -o $(ELF)
-	$(SIZE) $(ELF)
+%.hex: %.elf
+	$(OBJCOPY) -Oihex $< $@
 
-$(HEX): $(ELF)
-	$(OBJCOPY) -Oihex $(ELF) $(HEX)
-
-$(BIN): $(ELF)
-	$(OBJCOPY) -Obinary $(ELF) $(BIN)
+%.bin: %.elf
+	$(OBJCOPY) -Obinary $< $@
 
 clean:
-	rm -f *.o *.out *.bin *.elf *.hex *.map main demo_leds demo_uart
+	rm -f *.o *.out *.bin *.elf *.hex *.map main demo_leds demo_uart demo_radio
 
-#START_ADDRESS = $($(OBJDUMP) -h $(ELF) -j .text | grep .text | awk '{print $$4}')
 
 erase:
 	$(OPENOCD) -c "set WORKAREASIZE 0;" -f $(OPENOCD_CFG) -c "init; reset halt; nrf51 mass_erase; shutdown;"
