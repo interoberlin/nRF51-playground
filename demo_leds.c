@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "nrf_delay.h"
+#include "delay.h"
 #include "nrf_gpio.h"
 
 /*
@@ -44,35 +44,35 @@ int main()
     {
         off(PIN_LED_WHITE_2);
         on(PIN_LED_RED_BRIGHT);
-        nrf_delay_ms(1000);
+        delay_ms(1000);
 
         off(PIN_LED_RED_BRIGHT);
         on(PIN_LED_GREEN);
-        nrf_delay_ms(1000);
+        delay_ms(1000);
         
         off(PIN_LED_GREEN);
         on(PIN_LED_YELLOW_1);
-        nrf_delay_ms(1000);
+        delay_ms(1000);
         
         off(PIN_LED_YELLOW_1);
         on(PIN_LED_WHITE_1);
-        nrf_delay_ms(1000);
+        delay_ms(1000);
         
         off(PIN_LED_WHITE_1);
         on(PIN_LED_YELLOW_2);
-        nrf_delay_ms(1000);
+        delay_ms(1000);
         
         off(PIN_LED_YELLOW_2);
         on(PIN_LED_BLUE);
-        nrf_delay_ms(1000);
+        delay_ms(1000);
         
         off(PIN_LED_BLUE);
         on(PIN_LED_RED);
-        nrf_delay_ms(1000);
+        delay_ms(1000);
         
         off(PIN_LED_RED);
         on(PIN_LED_WHITE_2);      
-        nrf_delay_ms(1000);
+        delay_ms(1000);
     }
 
     return 0;

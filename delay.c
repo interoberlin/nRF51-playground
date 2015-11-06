@@ -24,3 +24,9 @@ void delay_us(uint32_t us)
 		: /* empty */ : [cycles] "l" (us) 
 	);
 }
+
+void delay_ms(uint32_t ms)
+{
+    for (int i=0; i<ms; i++)
+        delay_us(999);
+}
