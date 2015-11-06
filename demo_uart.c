@@ -27,7 +27,7 @@ void uart_setup()
     uart_select_pin_as_CTS(UART_PIN_DISABLE);
     uart_set_baud(baud_9600);
     uart_set_parity_exclude;
-    uart_disable_flow_control;
+    uart_flow_control_enable;
 
     // configure reception
     uart_select_pin_as_RXD(PIN_UART_RXD);
