@@ -1,4 +1,11 @@
 
+/**
+ * UART library for the Nordic Semiconductor nRF51 series
+ *
+ * Author: Matthias Bock <mail@matthiasbock.net>
+ * License: GNU GPLv3
+ */
+
 #ifndef UART_H
 #define UART_H
 
