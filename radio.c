@@ -126,13 +126,14 @@ int16_t radio_prepare(uint8_t channel, uint32_t aa, uint32_t crcinit)
 
     int8_t frequency = radio_channel_to_frequency(channel);
 
-    if (freq < 0)
+    if (frequency < 0)
         return -EINVAL;
 
     RADIO_DATAWHITEIV = channel & 0x3F;
     RADIO_FREQUENCY = frequency;
     RADIO_BASE0 = (aa << 8) & 0xFFFFFF00;
-    RADIO_PREFIX0 = (aa >> 24) & RADIO_PREFIX0_AP0_Msk;
+    // set the highest byte of aa as address prefix
+    radio_set_address_prefix(0, aa >> 24);
     RADIO_CRCINIT = crcinit;
 
     return 0;
@@ -175,7 +176,7 @@ int16_t radio_stop(void)
     RADIO_SHORTS = default_shortcuts;
 
     RADIO_EVENTS_DISABLED = 0;
-    RADIO_TASKS_DISABLE = 1;
+    RADIO_TASK_DISABLE = 1;
     while (!RADIO_EVENTS_DISABLED)
         asm("nop");
 
@@ -192,10 +193,10 @@ void radio_set_out_buffer(uint8_t *buf)
 int16_t radio_init(void)
 {
     // wait for high frequency clock to get started
-    if (!NRF_CLOCK->EVENTS_HFCLKSTARTED)
+    if (!CLOCK_EVENT_HFCLKSTARTED)
     {
-        NRF_CLOCK->TASKS_HFCLKSTART = 1;
-        while (!NRF_CLOCK->EVENTS_HFCLKSTARTED)
+        CLOCK_TASK_HFCLKSTART = 1;
+        while (!CLOCK_EVENT_HFCLKSTARTED)
             asm("nop");
     }
 
@@ -207,20 +208,19 @@ int16_t radio_init(void)
      * Apply obligatory factory settings: 
      * Fine tune BLE deviation parameters.
      */
-    if ((NRF_FICR->OVERRIDEEN & FICR_OVERRIDEEN_BLE_1MBIT_Msk)
-                    == (FICR_OVERRIDEEN_BLE_1MBIT_Override
-                    << FICR_OVERRIDEEN_BLE_1MBIT_Pos))
+    if (FICR_OVERRIDEEN & FICR_OVERRIDEEN_BLE_1MBIT)
     {
-        RADIO_OVERRIDE[0] = NRF_FICR->BLE_1MBIT[0];
-        RADIO_OVERRIDE[1] = NRF_FICR->BLE_1MBIT[1];
-        RADIO_OVERRIDE[2] = NRF_FICR->BLE_1MBIT[2];
-        RADIO_OVERRIDE[3] = NRF_FICR->BLE_1MBIT[3];
-        RADIO_OVERRIDE[4] = NRF_FICR->BLE_1MBIT[4] | 0x80000000;
+        RADIO_OVERRIDE[0] = FICR_BLE_1MBIT[0];
+        RADIO_OVERRIDE[1] = FICR_BLE_1MBIT[1];
+        RADIO_OVERRIDE[2] = FICR_BLE_1MBIT[2];
+        RADIO_OVERRIDE[3] = FICR_BLE_1MBIT[3];
+        RADIO_OVERRIDE[4] = FICR_BLE_1MBIT[4] | 0x80000000;
     }
 
     RADIO_MODE = RADIO_MODE_BLE_1MBIT;
 
-    /* Link Layer specification section 4.1, Core 4.1, page 2524
+    /*
+     * Link Layer specification section 4.1, Core 4.1, page 2524
      * nRF51 Series Reference Manual v2.1, section 16.2.7, page 92
      *
      * Set the inter frame space (T_IFS) to 150 us.
@@ -236,7 +236,8 @@ int16_t radio_init(void)
     radio_set_max_payload_length(MAX_PAYLOAD_LENGTH);
     radio_set_access_address_size(3);
 
-    /* nRF51 Series Reference Manual v2.1, section 16.1.4, page 74
+    /*
+     * nRF51 Series Reference Manual v2.1, section 16.1.4, page 74
      * nRF51 Series Reference Manual v2.1, section 16.2.14-15, pages 89-90
      *
      * Preset the address to use when receive and transmit packets (logical
@@ -287,7 +288,7 @@ int16_t radio_init(void)
     // Disable all radio interrupts
     RADIO_INTENCLR = ~0;
     // Trigger radio interrupt when an END event happens
-    RADIO_INTENSET = RADIO_INTENSET_END;
+    RADIO_INTENSET = RADIO_INTERRUPT_END;
 
     radio_set_callbacks(NULL, NULL);
     RADIO_TXPOWER = RADIO_TXPOWER_0DBM;

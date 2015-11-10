@@ -18,6 +18,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "ficr.h"
+
 /*
 #include "core_cmFunc.h"
 #include "core_cmInstr.h"
@@ -82,48 +84,15 @@
 #define RADIO_STATE             (*(volatile uint32_t*) (RADIO_BASE+0x550))   // Current radio state
 #define RADIO_DATAWHITEIV       (*(volatile uint32_t*) (RADIO_BASE+0x554))   // Data whitening initial value
 #define RADIO_BCC               (*(volatile uint32_t*) (RADIO_BASE+0x560))   // Bit counter compare
-
 /*
  * Arrays are always pointers in C, therefore no asterisk after uint32_t[x].
  * Accessing array elements by index (e.g. RADIO_DAB[5]) equals pointer dereferencing in C, therefore no asterisk before (volatile...)
  * => RADIO_DAB is a pointer to an array of 32bit unsigned integers, which has 8 elements and is located at memory address RADIO_BASE+0x600.
  */
-#define RADIO_DAB               ((volatile uint32_t[8]) (RADIO_BASE+0x600))  // Device address base
-
-/*
-#define RADIO_DAB_0             (*(volatile uint32_t*) (RADIO_BASE+0x600))   // 
-#define RADIO_DAB_1             (*(volatile uint32_t*) (RADIO_BASE+0x604))   // 
-#define RADIO_DAB_2             (*(volatile uint32_t*) (RADIO_BASE+0x608))   // 
-#define RADIO_DAB_3             (*(volatile uint32_t*) (RADIO_BASE+0x60C))   // 
-#define RADIO_DAB_4             (*(volatile uint32_t*) (RADIO_BASE+0x610))   // 
-#define RADIO_DAB_5             (*(volatile uint32_t*) (RADIO_BASE+0x614))   // 
-#define RADIO_DAB_6             (*(volatile uint32_t*) (RADIO_BASE+0x618))   // 
-#define RADIO_DAB_7             (*(volatile uint32_t*) (RADIO_BASE+0x61C)    //
-*/
-
-#define RADIO_DAP               ((volatile uint32_t[8]) (RADIO_BASE+0x620))  // Device address prefix
-/* 
-#define RADIO_DAP_0             (*(volatile uint32_t*) (RADIO_BASE+0x620))   // Device address prefix 0
-#define RADIO_DAP_1             (*(volatile uint32_t*) (RADIO_BASE+0x624))   // 
-#define RADIO_DAP_2             (*(volatile uint32_t*) (RADIO_BASE+0x628))   // 
-#define RADIO_DAP_3             (*(volatile uint32_t*) (RADIO_BASE+0x62C))   // 
-#define RADIO_DAP_4             (*(volatile uint32_t*) (RADIO_BASE+0x630))   // 
-#define RADIO_DAP_5             (*(volatile uint32_t*) (RADIO_BASE+0x634))   // 
-#define RADIO_DAP_6             (*(volatile uint32_t*) (RADIO_BASE+0x638))   // 
-#define RADIO_DAP_7             (*(volatile uint32_t*) (RADIO_BASE+0x63C))   // 
-*/
-
+#define RADIO_DAB              ((volatile uint32_t[8]) {RADIO_BASE+0x600})   // Device address base
+#define RADIO_DAP              ((volatile uint32_t[8]) {RADIO_BASE+0x620})   // Device address prefix
 #define RADIO_DACNF             (*(volatile uint32_t*) (RADIO_BASE+0x640))   // Device address match configuration
-
-#define RADIO_OVERRIDE          ((volatile uint32_t[5]) (RADIO_BASE+0x724))  // Trim value override
-/*
-#define RADIO_OVERRIDE_0        (*(volatile uint32_t*) (RADIO_BASE+0x724))   // Trim value override register 0
-#define RADIO_OVERRIDE_1        (*(volatile uint32_t*) (RADIO_BASE+0x728))   // 
-#define RADIO_OVERRIDE_2        (*(volatile uint32_t*) (RADIO_BASE+0x72C))   // 
-#define RADIO_OVERRIDE_3        (*(volatile uint32_t*) (RADIO_BASE+0x730))   // 
-#define RADIO_OVERRIDE_4        (*(volatile uint32_t*) (RADIO_BASE+0x734))   // 
-*/
-
+#define RADIO_OVERRIDE         ((volatile uint32_t[5]) {RADIO_BASE+0x724})   // Trim value override
 #define RADIO_POWER             (*(volatile uint32_t*) (RADIO_BASE+0xFFC))   // Peripheral power control
 
 
@@ -165,7 +134,7 @@
 // for RADIO_MODE
 #define RADIO_MODE_NRF_1MBIT                0
 #define RADIO_MODE_NRF_2MBIT                1
-#define RADIO_MODE NRF_250KBIT              2
+#define RADIO_MODE_NRF_250KBIT              2
 #define RADIO_MODE_BLE_1MBIT                3
 
 // for RADIO_TXADDRESS
@@ -214,17 +183,23 @@
 #define radio_crcstatus_ok                 (RADIO_CRCSTATUS == 1)
 
 
-    RADIO_PCNF1 =
+// for RADIO_PCNF1
+#define radio_data_whitening_enable         RADIO_PCNF1 |=  (1 << 25) // set bit
+#define radio_data_whitening_disable        RADIO_PCNF1 &= ~(1 << 25) // clear bit 
+#define radio_set_max_payload_length(len)   RADIO_PCNF1 = (RADIO_PCNF1 & 0xFFFFFF00) | (len & 0xFF)
+#define radio_set_access_address_size(size) RADIO_PCNF1 = (RADIO_PCNF1 & 0xFFF8FFFF) | ((size & 0x07) << 16)
 
-    radio_data_whitening_enable;
-        (RADIO_PCNF1_WHITEEN_Enabled << RADIO_PCNF1_WHITEEN_Pos) |
-
-    radio_set_max_payload_length(MAX_PAYLOAD_LENGTH);
-        (MAX_PAYLOAD_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |
-
-    radio_set_access_address_size();
-        (3UL << RADIO_PCNF1_BALEN_Pos);
-
+/*
+ * 8bit address prefix (AP)
+ *  AP0-4: read from RADIO_PREFIX0
+ *  AP5-7: read from RADIO_PREFIX1
+ */
+#define radio_get_address_prefix(n)         (n < 4 ? \
+                                             RADIO_PREFIX0 & (0xFF << (n*8))) : \
+                                             RADIO_PREFIX1 & (0xFF << ((n-4)*8)))
+#define radio_set_address_prefix(n, val)    if (n < 4) \
+                                                 RADIO_PREFIX0 = (val & 0xFF) << (n*8); \
+                                            else RADIO_PREFIX1 = (val & 0xFF) << ((n-4)*8);
 
 /*
  * Link Layer
