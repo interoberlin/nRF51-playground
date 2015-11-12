@@ -1,6 +1,7 @@
 
 /**
- * Radio frequency unit library for the Nordic Semiconductor nRF51 series
+ * Radio frequency unit library
+ * for the Nordic Semiconductor nRF51 series
  *
  * Authors:
  *      Paulo B. de Oliveira Filho <pauloborgesfilho@gmail.com>
@@ -54,9 +55,9 @@ uint8_t radio_channel_to_frequency(uint8_t channel)
             return 80;
         // data channels(?)
         default:
-            if (ch > 39)
+            if (channel > 39)
                 return -1;
-            if (ch < 11)
+            if (channel < 11)
                 return 4 + (2 * channel);
             return 6 + (2 * channel);
     }
@@ -72,7 +73,7 @@ void RADIO_Handler()
     uint8_t old_status;
     bool active;
 
-    RADIO_EVENTS_END = 0UL;
+    RADIO_EVENT_END = 0UL;
 
     active = false;
     old_status = status;
@@ -116,27 +117,31 @@ int16_t radio_set_callbacks(radio_receive_callback_t rcb, radio_send_callback_t 
     return 0;
 }
 
-int16_t radio_prepare(uint8_t channel, uint32_t aa, uint32_t crcinit)
+bool radio_prepare(uint8_t channel, uint32_t addr, uint32_t crcinit)
 {
     if (!(status & STATUS_INITIALIZED))
-        return -ENOREADY;
+        return false;
 
     if (status & STATUS_BUSY)
-        return -EBUSY;
+        return false;
 
     int8_t frequency = radio_channel_to_frequency(channel);
 
     if (frequency < 0)
-        return -EINVAL;
+        return false;
 
     RADIO_DATAWHITEIV = channel & 0x3F;
     RADIO_FREQUENCY = frequency;
-    RADIO_BASE0 = (aa << 8) & 0xFFFFFF00;
-    // set the highest byte of aa as address prefix
-    radio_set_address_prefix(0, aa >> 24);
+
+    // set lower 3 bytes of address as base address
+    radio_set_address_base(0, (addr << 8) & 0xFFFFFF00);
+
+    // set the highest byte of address as address prefix
+    radio_set_address_prefix(0, (addr >> 24) & 0xFF);
+
     RADIO_CRCINIT = crcinit;
 
-    return 0;
+    return true;
 }
 
 int16_t radio_send(const uint8_t *data, uint32_t f)
@@ -167,22 +172,22 @@ int16_t radio_recv(uint32_t f)
     return 0;
 }
 
-int16_t radio_stop(void)
+bool radio_stop(void)
 {
     if (!(status & STATUS_BUSY))
-        return -ENOREADY;
+        return false;
 
     flags = 0;
     RADIO_SHORTS = default_shortcuts;
 
-    RADIO_EVENTS_DISABLED = 0;
+    RADIO_EVENT_DISABLED = 0;
     RADIO_TASK_DISABLE = 1;
-    while (!RADIO_EVENTS_DISABLED)
+    while (!RADIO_EVENT_DISABLED)
         asm("nop");
 
     status &= ~STATUS_BUSY;
 
-    return 0;
+    return true;
 }
 
 void radio_set_out_buffer(uint8_t *buf)
@@ -208,7 +213,7 @@ int16_t radio_init(void)
      * Apply obligatory factory settings: 
      * Fine tune BLE deviation parameters.
      */
-    if (FICR_OVERRIDEEN & FICR_OVERRIDEEN_BLE_1MBIT)
+    if (FICR_OVERRIDE_ENABLED_BLE_1MBIT)
     {
         RADIO_OVERRIDE[0] = FICR_BLE_1MBIT[0];
         RADIO_OVERRIDE[1] = FICR_BLE_1MBIT[1];
@@ -253,9 +258,7 @@ int16_t radio_init(void)
      * Configure the CRC length (3 octets), polynominal and set it to
      * ignore the access address when calculate the CRC.
      */
-    RADIO_CRCCNF =
-        (RADIO_CRCCNF_LEN_Three << RADIO_CRCCNF_LEN_Pos) |
-        (RADIO_CRCCNF_SKIP_ADDR_Skip << RADIO_CRCCNF_SKIP_ADDR_Pos);
+    RADIO_CRCCNF  = RADIO_CRCCNF_LEN_3 | RADIO_CRCCNF_SKIPADDR; 
     RADIO_CRCPOLY = 0x100065B;
 
     /*
@@ -268,9 +271,9 @@ int16_t radio_init(void)
      * payload field: S0, LENGTH and S1. These fields can be used to store
      * the PDU header.
      */
-    RADIO_PCNF0 = (1UL << RADIO_PCNF0_S0LEN_Pos)
-            | (8UL << RADIO_PCNF0_LFLEN_Pos)
-            | (0UL << RADIO_PCNF0_S1LEN_Pos);
+    radio_set_lf_length(8);
+    radio_set_s0_length(1);
+    radio_set_s1_length(0);
 
     /*
      * nRF51 Series Reference Manual v2.1, section 16.1.8, page 76

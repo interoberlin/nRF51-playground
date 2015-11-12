@@ -1,6 +1,7 @@
 
 /**
- * Radio frequency unit library for the Nordic Semiconductor nRF51 series
+ * Radio frequency unit library
+ * for the Nordic Semiconductor nRF51 series
  *
  * Authors:
  *      Paulo B. de Oliveira Filho <pauloborgesfilho@gmail.com>
@@ -19,12 +20,7 @@
 #include <stdbool.h>
 
 #include "ficr.h"
-
-/*
-#include "core_cmFunc.h"
-#include "core_cmInstr.h"
-#include "core_cm0.h"
-*/
+#include "clock.h"
  
 /*
  * Constants
@@ -182,12 +178,22 @@
  */
 #define radio_crcstatus_ok                 (RADIO_CRCSTATUS == 1)
 
+// for RADIO_PCNF0
+#define radio_set_lf_length(num_bits)       RADIO_PCNF0 = (RADIO_PCNF0 & 0xFFFFFFF0) |  (num_bits  & 0x0F)
+#define radio_set_s0_length(num_bytes)      RADIO_PCNF0 = (RADIO_PCNF0 & 0xFFFFFEFF) |  (num_bytes & 0x01)
+#define radio_set_s1_length(num_bits)       RADIO_PCNF0 = (RADIO_PCNF0 & 0xFFF0FFFF) | ((num_bits  & 0x0F) << 16)
 
 // for RADIO_PCNF1
 #define radio_data_whitening_enable         RADIO_PCNF1 |=  (1 << 25) // set bit
 #define radio_data_whitening_disable        RADIO_PCNF1 &= ~(1 << 25) // clear bit 
-#define radio_set_max_payload_length(len)   RADIO_PCNF1 = (RADIO_PCNF1 & 0xFFFFFF00) | (len & 0xFF)
-#define radio_set_access_address_size(size) RADIO_PCNF1 = (RADIO_PCNF1 & 0xFFF8FFFF) | ((size & 0x07) << 16)
+#define radio_set_max_payload_length(len)   RADIO_PCNF1  = (RADIO_PCNF1 & 0xFFFFFF00) |  (len  & 0xFF)
+#define radio_set_access_address_size(size) RADIO_PCNF1  = (RADIO_PCNF1 & 0xFFF8FFFF) | ((size & 0x07) << 16)
+
+// for RADIO_BASEx
+#define radio_set_address_base(n, val)      if (n == 0) \
+                                                RADIO_BASE0 = val; \
+                                            else if (n == 1) \
+                                                RADIO_BASE1 = val;
 
 /*
  * 8bit address prefix (AP)
@@ -195,11 +201,11 @@
  *  AP5-7: read from RADIO_PREFIX1
  */
 #define radio_get_address_prefix(n)         (n < 4 ? \
-                                             RADIO_PREFIX0 & (0xFF << (n*8))) : \
-                                             RADIO_PREFIX1 & (0xFF << ((n-4)*8)))
+                                                RADIO_PREFIX0 & (0xFF << (n*8))) \
+                                            :   RADIO_PREFIX1 & (0xFF << ((n%4)*8)))
 #define radio_set_address_prefix(n, val)    if (n < 4) \
                                                  RADIO_PREFIX0 = (val & 0xFF) << (n*8); \
-                                            else RADIO_PREFIX1 = (val & 0xFF) << ((n-4)*8);
+                                            else RADIO_PREFIX1 = (val & 0xFF) << ((n%4)*8);
 
 /*
  * Link Layer
@@ -216,18 +222,17 @@
  * of a TX/RX_NEXT flag). So, if the callback implementation wants to operate
  * the radio, it will need to first stop the radio.
  */
-typedef void (*radio_recv_callback_t) (const uint8_t *pdu, bool crc, bool active);
+typedef void (*radio_receive_callback_t) (const uint8_t *pdu, bool crc, bool active);
 typedef void (*radio_send_callback_t) (bool active);
 
 int16_t radio_init(void);
 
-int16_t radio_set_callbacks(radio_recv_callback_t recv_callback, radio_send_callback_t send_callback);
-int16_t radio_prepare(uint8_t ch, uint32_t aa, uint32_t crcinit);
+int16_t radio_set_callbacks(radio_receive_callback_t recv_callback, radio_send_callback_t send_callback);
+bool    radio_prepare(uint8_t ch, uint32_t aa, uint32_t crcinit);
 int16_t radio_recv(uint32_t flags);
 int16_t radio_send(const uint8_t *data, uint32_t flags);
-int16_t radio_stop(void);
+bool    radio_stop(void);
 
-int16_t radio_set_tx_power(radio_power_t power);
 void radio_set_out_buffer(uint8_t *buf);
 
-#endif RADIO_H
+#endif

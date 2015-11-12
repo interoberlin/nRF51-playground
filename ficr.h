@@ -30,4 +30,7 @@
 #define FICR_NRF_1MBIT         ((volatile uint32_t[5]) {FICR_BASE+0xB0})    // Override value for NRF_1MBIT mode
 #define FICR_BLE_1MBIT         ((volatile uint32_t[5]) {FICR_BASE+0xEC})    // Override value for BLE_1MBIT mode
 
-#endif RADIO_H
+// Masks
+#define FICR_OVERRIDE_ENABLED_BLE_1MBIT         (FICR_OVERRIDEEN & (1 << 3))
+
+#endif
