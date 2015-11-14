@@ -14,7 +14,7 @@
 
 #include "radio.h"
 
-#define MAX_BUF_LEN                 RADIO_MAX_PDU
+#define MAX_BUF_LEN                    RADIO_MAX_PDU
 #define MAX_PAYLOAD_LENGTH            (RADIO_MAX_PDU - 2)
 
 static uint8_t inbuf[MAX_BUF_LEN] __attribute__ ((aligned));
@@ -72,6 +72,8 @@ void RADIO_Handler()
 {
     uint8_t old_status;
     bool active;
+
+    uart_send("Radio interrupt!\xD\xA", 18);
 
     RADIO_EVENT_END = 0UL;
 

@@ -41,7 +41,7 @@ int main()
     uart_setup();
     uart_send("\xD\xAnRF51822:~$ ", 14);
 
-    radio_setup();
+    radio_init();
     
     while (true)
     {

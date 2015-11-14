@@ -5,3 +5,4 @@
 
 void* malloc(uint32_t size);
 void  free(void* ptr);
+void* memset(void* s, uint8_t c, uint32_t n);

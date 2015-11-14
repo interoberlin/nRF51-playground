@@ -15,12 +15,15 @@
 #ifndef RADIO_H
 #define RADIO_H
 
-#include <string.h>
+// general includes
 #include <stdint.h>
 #include <stdbool.h>
+#include "heap.h"
 
+// nRF51-specific includes
 #include "ficr.h"
 #include "clock.h"
+#include "uart.h"
  
 /*
  * Constants
@@ -218,7 +221,8 @@
 #define RADIO_FLAGS_TX_NEXT		2
 
 
-/* The active parameter informs if the radio is currently active (e.g. because
+/*
+ * The active parameter informs if the radio is currently active (e.g. because
  * of a TX/RX_NEXT flag). So, if the callback implementation wants to operate
  * the radio, it will need to first stop the radio.
  */
@@ -228,7 +232,7 @@ typedef void (*radio_send_callback_t) (bool active);
 int16_t radio_init(void);
 
 int16_t radio_set_callbacks(radio_receive_callback_t recv_callback, radio_send_callback_t send_callback);
-bool    radio_prepare(uint8_t ch, uint32_t aa, uint32_t crcinit);
+bool    radio_prepare(uint8_t ch, uint32_t addr, uint32_t crcinit);
 int16_t radio_recv(uint32_t flags);
 int16_t radio_send(const uint8_t *data, uint32_t flags);
 bool    radio_stop(void);
