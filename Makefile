@@ -43,10 +43,10 @@ all: demo_leds.elf demo_uart.elf demo_radio.elf
 demo_leds.elf: nrf51_startup.o system_nrf51.o delay.o demo_leds.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_uart.elf: nrf51_startup.o system_nrf51.o delay.o uart.o demo_uart.o 
+demo_uart.elf: nrf51_startup.o system_nrf51.o delay.o fifo.o uart.o demo_uart.o 
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_radio.elf: nrf51_startup.o system_nrf51.o heap.o delay.o uart.o radio.o demo_radio.o
+demo_radio.elf: nrf51_startup.o system_nrf51.o heap.o delay.o fifo.o uart.o radio.o demo_radio.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 %.o: %.c %s

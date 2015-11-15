@@ -214,11 +214,11 @@
  * Link Layer
  * Bluetooth Core 4.1 specification, section 2.1, page 2503
  */
-#define RADIO_MAX_PDU			39
-#define RADIO_MIN_PDU			2
+#define RADIO_MAX_PDU            39
+#define RADIO_MIN_PDU            2
 
-#define RADIO_FLAGS_RX_NEXT		1
-#define RADIO_FLAGS_TX_NEXT		2
+#define RADIO_FLAGS_RX_NEXT      1
+#define RADIO_FLAGS_TX_NEXT      2
 
 
 /*

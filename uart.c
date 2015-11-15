@@ -14,16 +14,9 @@
 
 #ifdef UART_SEND_USING_INTERRUPTS
 
-// TODO: FIFOs...
+volatile fifo_t     uart_tx_fifo;
+volatile fifo_t     uart_rx_fifo;
 
-volatile char*      uart_tx_buffer = NULL;
-volatile uint32_t   uart_tx_buffer_length = 0;
-volatile uint32_t   uart_tx_buffer_cursor = 0;
-
-// TODO: something about the malloc is apparently not working yet...
-volatile char*      uart_rx_buffer = "\0\0\0\0\0\0\0\0";
-volatile uint32_t   uart_rx_buffer_length = 8;
-volatile uint32_t   uart_rx_buffer_cursor = 0;
 
 /*
  * UART Interrupt Service Routine
@@ -32,59 +25,56 @@ volatile uint32_t   uart_rx_buffer_cursor = 0;
  */
 void UART0_Handler()
 {
-    uint32_t transmitted = uart_event_TXDRDY;
-    uint32_t received = uart_event_RXDRDY;
-    uint32_t timeout = uart_event_RXTO;
-    uint32_t error = uart_event_ERROR;
+    // cache event stati for processing
+    uint32_t transmitted    = uart_event_TXDRDY;
+    uint32_t received       = uart_event_RXDRDY;
+    uint32_t timeout        = uart_event_RXTO;
+    uint32_t error          = uart_event_ERROR;
 
     // is the transmitter circuit ready for another byte?
-    if (transmitted != 0)
+    if (transmitted)
     {
-        if (uart_tx_buffer_cursor >= uart_tx_buffer_length-1)
+        // send another byte
+        if (fifo_available(uart_tx_fifo))
+            // output one byte to UART
+            uart_write( fifo_read(uart_tx_fifo) );
+
+        // TX buffer empty
+        if (!fifo_available(uart_tx_fifo))
             // disable future interrupts on a TXDRDY event
             uart_interrupt_upon_TXDRDY_disable;
 
-        if (uart_tx_buffer_cursor < uart_tx_buffer_length)
-            // output one byte to UART
-            uart_write( *(uart_tx_buffer+(uart_tx_buffer_cursor++)) );
-
+        // clear before or after sending next byte from TX buffer?
         clear_event(uart_event_TXDRDY);
     }
 
     // did the receiver circuit receive a byte?
-    if (received != 0)
+    if (received)
     {
-        // must be cleared before reading RX, see nRF Series Reference manual p.153
-        clear_event(uart_event_RXDRDY);
-
-        // allocate memory for rx buffer
-/*
-        TODO: buffering...
-        if (uart_rx_buffer == NULL)
+        if (!fifo_full(uart_rx_fifo))
         {
-            uart_rx_buffer = malloc(uart_rx_buffer_length);
-            if (uart_rx_buffer == NULL)
-                return; // malloc failed
-        }
-*/
-        uint8_t incoming = uart_read;
+            // must be cleared before reading RX, see nRF Series Reference manual p.153
+            clear_event(uart_event_RXDRDY);
 
-        // echo read byte back to sender
-        uart_write(incoming);
-        
-        // do we have room for another byte in the buffer?
-        if (uart_rx_buffer_cursor < uart_rx_buffer_length-1)
-        {
-            uart_rx_buffer[uart_rx_buffer_cursor++] = incoming;
+            // receive one byte
+            uint8_t incoming = uart_read;
+
+            // echo read byte back to sender
+            uart_write(incoming);
+
+            // push received byte to buffer
+            fifo_write(uart_rx_fifo, (char) incoming);
         }
     }
     
-    if (timeout != 0)
+    // unhandled, but must be cleared
+    if (timeout)
     {
         clear_event(uart_event_RXTO);
     }
 
-    if (error != 0)
+    // unhandled, but must be cleared
+    if (error)
     {
         clear_event(uart_event_ERROR);
     }
@@ -99,13 +89,19 @@ void uart_send(char* buffer, uint8_t length)
 {
     uart_stop_transmitter;
     
-    // copy data to internal buffer to prevent buffer changes during transmission 
-    // TODO
-    
-    // meanwhile directly use argument as TX buffer
-    uart_tx_buffer = buffer;
-    uart_tx_buffer_length = length;
-    uart_tx_buffer_cursor = 0;
+    // copy data to internal buffer to prevent buffer changes during transmission
+    uint8_t timeout = 10;
+    for (uint8_t i=0; i<length; i++)
+    {
+        // FIFO is full? -> wait until timeout
+        while (fifo_full(uart_tx_fifo) && (timeout--) > 0)
+            delay_ms(1);
+        // timeout
+        if (timeout <= 0)
+            break;
+        // push current buffer char to FIFO
+        fifo_write(uart_tx_fifo, buffer[i]);
+    }
 
     // enable transmitter ready event interrupt
     uart_interrupt_upon_TXDRDY_enable;
@@ -116,8 +112,37 @@ void uart_send(char* buffer, uint8_t length)
     // enable transmission 
     uart_start_transmitter;
     
-    // initiate transmission by writing the first byte to tranmitter buffer
-    uart_write( *(uart_tx_buffer+(uart_tx_buffer_cursor++)) );
+    // initiate transmission cycle by writing the first byte to tranmitter buffer
+    uart_write( fifo_read(uart_tx_fifo) );
+}
+
+/*
+ * Count the number of characters in the string until the null terminator.
+ * The null terminator must occur, otherwise string length is counted until the end of heap.
+ */
+uint32_t strlen(char* s)
+{
+    uint32_t len = 0;
+    extern uint32_t heap_end;
+
+    // keep counting until end of heap is reached
+    // or reached character is a null terminator
+    while (((uint32_t) s)+len < (uint32_t) &heap_end && *(s+len) != 0)
+        len++;
+
+    // heap end?
+    if (((uint32_t) s)+len >= (uint32_t) &heap_end)
+        return 0;
+
+    return len;
+}
+
+/*
+ * Send a string: automatically determine the number of characters to send
+ */
+void uart_send_string(char* s)
+{
+    uart_send(s, strlen(s));
 }
 
 /*

@@ -3,8 +3,12 @@
 #include <stdint.h>
 
 #include "nrf_gpio.h"
+#include "delay.h"
 #include "uart.h"
 #include "radio.h"
+
+// enable debug messages
+#define DEBUG_VIA_UART
 
 /*
  * RS-232 serial port (UART)
@@ -39,14 +43,49 @@ void uart_setup()
 int main()
 {
     uart_setup();
-    uart_send("\xD\xAnRF51822:~$ ", 14);
+    uart_send_string("\r\nnRF51822:~$ ");
 
     radio_init();
     
+    /* Link Layer specification section 2.3, Core 4.1, page 2504
+     * Link Layer specification section 2.3.1.3, Core 4.1, page 2507
+     *
+     * ADV_NONCONN_IND PDU (39 octets):
+     * +--------+--------+---------+
+     * | Header |  AdvA  | AdvData |
+     * +--------+--------+---------+
+     *  2 octets 6 octets 31 octets
+     *
+     * Header:  <PDU Type=ADV_NONCONN_IND, TxAddr=RANDOM, Length=22>
+     * AdvA:    <FF:EE:DD:CC:BB:AA>
+     * AdvData: <AD: Len=15, Type="Complete Local Name", Data="blessed device">
+     */
+    uint8_t adv_nonconn_ind[] = {
+        0x42, 0x16,                 /* Header */
+        0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,     /* AdvA */
+        0x0F,                       /* AD Length */
+        0x09,                       /* AD Type */
+        0x62, 0x6C, 0x65, 0x73, 0x73, 0x65, 0x64, 0x20, /* AD Data */
+        0x64, 0x65, 0x76, 0x69, 0x63, 0x65
+    };
+
+    /* Link Layer specification Section 2.1.2, Core 4.1 page 2503 */
+    #define ADV_CHANNEL_AA          0x8E89BED6
+
+    /* Link Layer specification Section 3.1.1, Core 4.1 page 2522 */
+    #define ADV_CHANNEL_CRC         0x555555
+
+    #define advertising_channels    {37,38,39}
+
+
+    uint8_t channel_index = 0;
     while (true)
     {
-        asm("wfi");
-        //delay_us(1000000);
+        //asm("wfi");
+        channel_index = (channel_index + 1) % 3;
+        radio_prepare(advertising_channels[channel_index], ADV_CHANNEL_AA, ADV_CHANNEL_CRC);
+        radio_send(adv_nonconn_ind, 0);
+        delay_ms(10);
     }
 
     return 0;

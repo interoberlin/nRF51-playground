@@ -202,10 +202,12 @@ int16_t radio_init(void)
     // wait for high frequency clock to get started
     if (!CLOCK_EVENT_HFCLKSTARTED)
     {
+        uart_send_string("High frequency clock has not been started. Starting...\n");
         CLOCK_TASK_HFCLKSTART = 1;
         while (!CLOCK_EVENT_HFCLKSTARTED)
             asm("nop");
     }
+    uart_send_string("High frequency clock started.\xD\xA");
 
     /*
      * nRF51 Series Reference Manual v2.1, section 6.1.1, page 18
@@ -225,6 +227,7 @@ int16_t radio_init(void)
     }
 
     RADIO_MODE = RADIO_MODE_BLE_1MBIT;
+    uart_send_string("Configuring radio for 1 MBit Bluetooth Low Energy...\xD\xA");
 
     /*
      * Link Layer specification section 4.1, Core 4.1, page 2524
@@ -303,6 +306,8 @@ int16_t radio_init(void)
     memset(inbuf, 0, sizeof(inbuf));
 
     status = STATUS_INITIALIZED;
+
+    uart_send_string("Radio initialized.\xD\xA");
 
     return 0;
 }

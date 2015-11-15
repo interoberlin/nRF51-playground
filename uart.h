@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include "heap.h"
+#include "fifo.h"
 //#include "core_cmFunc.h"
 //#include "core_cmInstr.h"
 //#include "core_cm0.h"
@@ -153,12 +154,12 @@
 
 
 /*
- * Exported functions
+ * Functions
  */
-void UART0_Handler();
+uint32_t strlen(char* s);
 
-void uart_send(char* buffer, uint8_t length);
-
+void    uart_send(char* buffer, uint8_t length);
+void    uart_send_string(char* s);
 uint8_t uart_receive(char* buffer, uint8_t max);
 
 #endif // UART_H
