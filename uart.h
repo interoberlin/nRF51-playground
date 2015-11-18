@@ -158,6 +158,7 @@
  */
 uint32_t strlen(char* s);
 
+void    uart_init_fifo();
 void    uart_send(char* buffer, uint8_t length);
 void    uart_send_string(char* s);
 uint8_t uart_receive(char* buffer, uint8_t max);

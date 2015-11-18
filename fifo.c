@@ -11,31 +11,37 @@
 /*
  * Read one byte from FIFO
  */
-char fifo_read(fifo_t fifo)
+bool fifo_read(struct fifo_s *fifo, char *dst)
 {
     if (!fifo_available(fifo))
-        return 0;
+        return false;
 
     // circular buffer
-    fifo.index_read = (fifo.index_read + 1) % FIFO_SIZE;
+    fifo->index_read = (fifo->index_read + 1) % FIFO_SIZE;
     // decrement number of available bytes
-    fifo.num_available--;
-    // return current FIFO char
-    return fifo.buffer[fifo.index_read];
+    fifo->num_available--;
+    // read char from FIFO
+    *dst = fifo->buffer[fifo->index_read];
+
+    // success
+    return true;
 }
 
 /*
  * Write one byte to FIFO
  */
-void fifo_write(fifo_t fifo, char c)
+bool fifo_write(struct fifo_s *fifo, char *c)
 {
     if (fifo_full(fifo))
-        return;
+        return false;
 
     // circular buffer
-    fifo.index_write = (fifo.index_write + 1) % FIFO_SIZE;
+    fifo->index_write = (fifo->index_write + 1) % FIFO_SIZE;
     // increment number of available bytes
-    fifo.num_available++;
+    fifo->num_available++;
     // write one byte to FIFO
-    fifo.buffer[fifo.index_write] = c;
+    fifo->buffer[fifo->index_write] = *c;
+
+    // success
+    return true;
 }

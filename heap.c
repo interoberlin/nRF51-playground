@@ -63,3 +63,4 @@ void* memcpy(void* dest, void* src, uint32_t n)
         *d++ = *s++;
     return dest;
 }
+

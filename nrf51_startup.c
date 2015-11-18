@@ -179,12 +179,8 @@ void Reset_Handler()
  */
 void Default_Handler()
 {
-    // sleep mode: wait for interrupt
-    // http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0497a/BABHHGEB.html
-    //asm("wfi");
-    
     // mentioned here for (hard-)fault debugging:
     uint32_t icsr = ICSR;
-    uint32_t active = INTACTIVE;
-    uint32_t pending = INTPENDING;
+    uint32_t interrupt_active = INTACTIVE;
+    uint32_t interrupt_pending = INTPENDING;
 }

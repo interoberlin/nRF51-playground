@@ -73,7 +73,7 @@ void RADIO_Handler()
     uint8_t old_status;
     bool active;
 
-    uart_send("Radio interrupt!\xD\xA", 18);
+    uart_send_string("Radio interrupt!\n");
 
     RADIO_EVENT_END = 0UL;
 
@@ -143,6 +143,8 @@ bool radio_prepare(uint8_t channel, uint32_t addr, uint32_t crcinit)
 
     RADIO_CRCINIT = crcinit;
 
+    uart_send_string("Radio prepared.\n");
+
     return true;
 }
 
@@ -156,6 +158,8 @@ int16_t radio_send(const uint8_t *data, uint32_t f)
 
     RADIO_PACKETPTR = (uint32_t) data;
     RADIO_TASK_TXEN = 1;
+
+    //uart_send_string(".");
 
     return 0;
 }
@@ -207,7 +211,7 @@ int16_t radio_init(void)
         while (!CLOCK_EVENT_HFCLKSTARTED)
             asm("nop");
     }
-    uart_send_string("High frequency clock started.\xD\xA");
+    uart_send_string("High frequency clock started.\n");
 
     /*
      * nRF51 Series Reference Manual v2.1, section 6.1.1, page 18
@@ -227,7 +231,7 @@ int16_t radio_init(void)
     }
 
     RADIO_MODE = RADIO_MODE_BLE_1MBIT;
-    uart_send_string("Configuring radio for 1 MBit Bluetooth Low Energy...\xD\xA");
+    uart_send_string("Configuring radio for 1 MBit Bluetooth Low Energy...\n");
 
     /*
      * Link Layer specification section 4.1, Core 4.1, page 2524
@@ -307,7 +311,7 @@ int16_t radio_init(void)
 
     status = STATUS_INITIALIZED;
 
-    uart_send_string("Radio initialized.\xD\xA");
+    uart_send_string("Radio initialized.\n");
 
     return 0;
 }

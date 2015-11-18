@@ -14,9 +14,24 @@
 
 #ifdef UART_SEND_USING_INTERRUPTS
 
-volatile fifo_t     uart_tx_fifo;
-volatile fifo_t     uart_rx_fifo;
+// reserve memory for incoming and outgoing bytes
+struct fifo_s uart_inbuffer, uart_outbuffer;
 
+// work with a pointer to this memory
+struct fifo_s *uart_tx_fifo;
+struct fifo_s *uart_rx_fifo;
+
+/*
+ * Initialize FIFO buffers
+ */
+void uart_init_fifo()
+{
+    uart_rx_fifo = &uart_inbuffer;
+    fifo_init(uart_rx_fifo);
+
+    uart_tx_fifo = &uart_outbuffer;
+    fifo_init(uart_tx_fifo);
+}
 
 /*
  * UART Interrupt Service Routine
@@ -35,12 +50,18 @@ void UART0_Handler()
     if (transmitted)
     {
         // send another byte
-        if (fifo_available(uart_tx_fifo))
-            // output one byte to UART
-            uart_write( fifo_read(uart_tx_fifo) );
+        if (fifo_available(uart_tx_fifo) > 0)
+        {
+            // one byte
+            char outgoing;
+            fifo_read(uart_tx_fifo, &outgoing);
+
+            // to UART
+            uart_write(outgoing);
+        }
 
         // TX buffer empty
-        if (!fifo_available(uart_tx_fifo))
+        if (fifo_available(uart_tx_fifo) <= 0)
             // disable future interrupts on a TXDRDY event
             uart_interrupt_upon_TXDRDY_disable;
 
@@ -57,13 +78,13 @@ void UART0_Handler()
             clear_event(uart_event_RXDRDY);
 
             // receive one byte
-            uint8_t incoming = uart_read;
+            char incoming = uart_read;
 
             // echo read byte back to sender
             uart_write(incoming);
 
             // push received byte to buffer
-            fifo_write(uart_rx_fifo, (char) incoming);
+            fifo_write(uart_rx_fifo, &incoming);
         }
     }
     
@@ -100,7 +121,9 @@ void uart_send(char* buffer, uint8_t length)
         if (timeout <= 0)
             break;
         // push current buffer char to FIFO
-        fifo_write(uart_tx_fifo, buffer[i]);
+        if ((char) *(buffer+i) == '\n')
+            fifo_write(uart_tx_fifo, (char*) &"\r");
+        fifo_write(uart_tx_fifo, buffer+i);
     }
 
     // enable transmitter ready event interrupt
@@ -113,7 +136,9 @@ void uart_send(char* buffer, uint8_t length)
     uart_start_transmitter;
     
     // initiate transmission cycle by writing the first byte to tranmitter buffer
-    uart_write( fifo_read(uart_tx_fifo) );
+    char outgoing;
+    fifo_read(uart_tx_fifo, &outgoing);
+    uart_write(outgoing);
 }
 
 /*

@@ -88,11 +88,11 @@
  * Accessing array elements by index (e.g. RADIO_DAB[5]) equals pointer dereferencing in C, therefore no asterisk before (volatile...)
  * => RADIO_DAB is a pointer to an array of 32bit unsigned integers, which has 8 elements and is located at memory address RADIO_BASE+0x600.
  */
-#define RADIO_DAB              ((volatile uint32_t[8]) {RADIO_BASE+0x600})   // Device address base
-#define RADIO_DAP              ((volatile uint32_t[8]) {RADIO_BASE+0x620})   // Device address prefix
-#define RADIO_DACNF             (*(volatile uint32_t*) (RADIO_BASE+0x640))   // Device address match configuration
-#define RADIO_OVERRIDE         ((volatile uint32_t[5]) {RADIO_BASE+0x724})   // Trim value override
-#define RADIO_POWER             (*(volatile uint32_t*) (RADIO_BASE+0xFFC))   // Peripheral power control
+#define RADIO_DAB                ((volatile uint32_t[8]) {RADIO_BASE+0x600})   // Device address base
+#define RADIO_DAP                ((volatile uint32_t[8]) {RADIO_BASE+0x620})   // Device address prefix
+#define RADIO_DACNF             (*(volatile uint32_t*)   (RADIO_BASE+0x640))   // Device address match configuration
+#define RADIO_OVERRIDE           ((volatile uint32_t[5]) {RADIO_BASE+0x724})   // Trim value override
+#define RADIO_POWER             (*(volatile uint32_t*)   (RADIO_BASE+0xFFC))   // Peripheral power control
 
 
 /*
@@ -204,8 +204,8 @@
  *  AP5-7: read from RADIO_PREFIX1
  */
 #define radio_get_address_prefix(n)         (n < 4 ? \
-                                                RADIO_PREFIX0 & (0xFF << (n*8))) \
-                                            :   RADIO_PREFIX1 & (0xFF << ((n%4)*8)))
+                                                 RADIO_PREFIX0 & (0xFF << (n*8))) \
+                                            :    RADIO_PREFIX1 & (0xFF << ((n%4)*8)))
 #define radio_set_address_prefix(n, val)    if (n < 4) \
                                                  RADIO_PREFIX0 = (val & 0xFF) << (n*8); \
                                             else RADIO_PREFIX1 = (val & 0xFF) << ((n%4)*8);

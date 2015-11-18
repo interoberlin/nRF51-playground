@@ -30,6 +30,7 @@ CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums
 
 LINKER_SCRIPT = nrf51.ld
+LDFLAGS += -nostartfiles -nostdlib -lgcc -static
 LDFLAGS += -L /usr/lib/gcc/arm-none-eabi/4.8/armv6-m/
 LDFLAGS += -L /usr/lib/arm-none-eabi/newlib/armv6-m/
 LDFLAGS += -T $(LINKER_SCRIPT)
@@ -43,7 +44,7 @@ all: demo_leds.elf demo_uart.elf demo_radio.elf
 demo_leds.elf: nrf51_startup.o system_nrf51.o delay.o demo_leds.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_uart.elf: nrf51_startup.o system_nrf51.o delay.o fifo.o uart.o demo_uart.o 
+demo_uart.elf: nrf51_startup.o system_nrf51.o heap.o delay.o fifo.o uart.o demo_uart.o 
 	$(LD) $(LDFLAGS) $^ -o $@
 
 demo_radio.elf: nrf51_startup.o system_nrf51.o heap.o delay.o fifo.o uart.o radio.o demo_radio.o

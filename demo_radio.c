@@ -21,6 +21,9 @@ void uart_setup()
 {
     uart_disable;
 
+    // initialize buffers
+    uart_init_fifo();
+
     // configure transmission
     nrf_gpio_pin_dir_set(PIN_UART_TXD, NRF_GPIO_PIN_DIR_OUTPUT);
     uart_select_pin_as_TXD(PIN_UART_TXD);
@@ -43,8 +46,6 @@ void uart_setup()
 int main()
 {
     uart_setup();
-    uart_send_string("\r\nnRF51822:~$ ");
-
     radio_init();
     
     /* Link Layer specification section 2.3, Core 4.1, page 2504
@@ -75,15 +76,18 @@ int main()
     /* Link Layer specification Section 3.1.1, Core 4.1 page 2522 */
     #define ADV_CHANNEL_CRC         0x555555
 
-    #define advertising_channels    {37,38,39}
-
-
+    uint8_t advertising_channels[] = {37,38,39};
     uint8_t channel_index = 0;
+
     while (true)
     {
-        //asm("wfi");
-        channel_index = (channel_index + 1) % 3;
-        radio_prepare(advertising_channels[channel_index], ADV_CHANNEL_AA, ADV_CHANNEL_CRC);
+//        https://github.com/interoberlin/nrf51-playground/issues/8:
+//        channel_index = (channel_index + 1) % 3;
+        channel_index = (channel_index + 1);
+        if (channel_index > 2)
+            channel_index = 0;
+        uint8_t channel = advertising_channels[channel_index];
+        radio_prepare(channel, ADV_CHANNEL_AA, ADV_CHANNEL_CRC);
         radio_send(adv_nonconn_ind, 0);
         delay_ms(10);
     }
