@@ -116,12 +116,12 @@ void uart_send(char* buffer, uint8_t length)
     {
         // FIFO is full? -> wait until timeout
         while (fifo_full(uart_tx_fifo) && (timeout--) > 0)
-            delay_ms(1);
+            delay_us(100);
         // timeout
         if (timeout <= 0)
             break;
         // push current buffer char to FIFO
-        if ((char) *(buffer+i) == '\n')
+        if (*(buffer+i) == '\n')
             fifo_write(uart_tx_fifo, (char*) &"\r");
         fifo_write(uart_tx_fifo, buffer+i);
     }

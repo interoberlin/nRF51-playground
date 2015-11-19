@@ -89,7 +89,7 @@ int main()
         uint8_t channel = advertising_channels[channel_index];
         radio_prepare(channel, ADV_CHANNEL_AA, ADV_CHANNEL_CRC);
         radio_send(adv_nonconn_ind, 0);
-        delay_ms(10);
+        delay_ms(100);
     }
 
     return 0;

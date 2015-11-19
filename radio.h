@@ -52,7 +52,11 @@
 #define RADIO_EVENT_DEVMATCH    (*(volatile uint32_t*) (RADIO_BASE+0x114))   // A device address match occurred on the last received packet
 #define RADIO_EVENT_DEVMISS     (*(volatile uint32_t*) (RADIO_BASE+0x118))   // No device address match occurred on the last received packet
 #define RADIO_EVENT_RSSIEND     (*(volatile uint32_t*) (RADIO_BASE+0x11C))   // Sampling of receive signal strength complete. A new RSSI sample is ready for readout from the RSSISAMPLE register.
+#define RADIO_EVENT_UNKNOWN1    (*(volatile uint32_t*) (RADIO_BASE+0x120))
+#define RADIO_EVENT_UNKNOWN2    (*(volatile uint32_t*) (RADIO_BASE+0x124))
 #define RADIO_EVENT_BCMATCH     (*(volatile uint32_t*) (RADIO_BASE+0x128))   // Bit counter reached bit count value specified in the BCC register
+#define RADIO_EVENT_UNKNOWN3    (*(volatile uint32_t*) (RADIO_BASE+0x12C))
+#define RADIO_EVENT_UNKNOWN4    (*(volatile uint32_t*) (RADIO_BASE+0x130))
 
 // Registers
 #define RADIO_SHORTS            (*(volatile uint32_t*) (RADIO_BASE+0x200))   // Shortcut register
@@ -189,7 +193,8 @@
 // for RADIO_PCNF1
 #define radio_data_whitening_enable         RADIO_PCNF1 |=  (1 << 25) // set bit
 #define radio_data_whitening_disable        RADIO_PCNF1 &= ~(1 << 25) // clear bit 
-#define radio_set_max_payload_length(len)   RADIO_PCNF1  = (RADIO_PCNF1 & 0xFFFFFF00) |  (len  & 0xFF)
+#define radio_get_max_payload_length       (RADIO_PCNF1 & 0x000000FF)
+#define radio_set_max_payload_length(len)   RADIO_PCNF1  = (RADIO_PCNF1 & 0xFFFFFF00) | (len & 0xFF)
 #define radio_set_access_address_size(size) RADIO_PCNF1  = (RADIO_PCNF1 & 0xFFF8FFFF) | ((size & 0x07) << 16)
 
 // for RADIO_BASEx
@@ -229,14 +234,12 @@
 typedef void (*radio_receive_callback_t) (const uint8_t *pdu, bool crc, bool active);
 typedef void (*radio_send_callback_t) (bool active);
 
-int16_t radio_init(void);
-
-int16_t radio_set_callbacks(radio_receive_callback_t recv_callback, radio_send_callback_t send_callback);
-bool    radio_prepare(uint8_t ch, uint32_t addr, uint32_t crcinit);
-int16_t radio_recv(uint32_t flags);
-int16_t radio_send(const uint8_t *data, uint32_t flags);
-bool    radio_stop(void);
-
+void radio_init(void);
+void radio_set_callbacks(radio_receive_callback_t recv_callback, radio_send_callback_t send_callback);
+bool radio_prepare(uint8_t ch, uint32_t addr, uint32_t crcinit);
+void radio_recv(uint32_t flags);
+void radio_send(const uint8_t *data, uint32_t flags);
+void radio_stop(void);
 void radio_set_out_buffer(uint8_t *buf);
 
 #endif

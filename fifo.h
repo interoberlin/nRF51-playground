@@ -23,10 +23,10 @@
  */
 struct fifo_s
 {
-    uint32_t index_read;
-    uint32_t index_write;
-    uint8_t  buffer[FIFO_SIZE];
-    uint32_t num_available;
+    volatile uint32_t index_read;
+    volatile uint32_t index_write;
+    volatile uint8_t  buffer[FIFO_SIZE];
+    volatile uint32_t num_available;
 };
 
 #define fifo_init(fifo) \

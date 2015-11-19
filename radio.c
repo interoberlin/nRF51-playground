@@ -29,9 +29,6 @@ static volatile uint32_t flags;
 #define STATUS_TX                   4
 #define STATUS_BUSY                (STATUS_RX | STATUS_TX)
 
-#define default_shortcuts          (RADIO_SHORTCUT_READY_START | RADIO_SHORTCUT_END_DISABLE)
-
-
 static radio_receive_callback_t receive_callback;
 static radio_send_callback_t send_callback;
 
@@ -73,9 +70,9 @@ void RADIO_Handler()
     uint8_t old_status;
     bool active;
 
-    uart_send_string("Radio interrupt!\n");
-
     RADIO_EVENT_END = 0UL;
+
+    uart_send("i",1);
 
     active = false;
     old_status = status;
@@ -111,26 +108,29 @@ void RADIO_Handler()
     }
 }
 
-int16_t radio_set_callbacks(radio_receive_callback_t rcb, radio_send_callback_t scb)
+void radio_set_callbacks(radio_receive_callback_t rcb, radio_send_callback_t scb)
 {
     receive_callback = rcb;
     send_callback = scb;
-
-    return 0;
 }
 
 bool radio_prepare(uint8_t channel, uint32_t addr, uint32_t crcinit)
 {
     if (!(status & STATUS_INITIALIZED))
+    {
+        uart_send_string("radio_prepare() failed: Radio not initialized\n");
         return false;
+    }
 
     if (status & STATUS_BUSY)
+    {
+        uart_send_string("radio_prepare() failed: Radio is busy\n");
         return false;
+    }
 
-    int8_t frequency = radio_channel_to_frequency(channel);
+    uint8_t frequency = radio_channel_to_frequency(channel);
 
-    if (frequency < 0)
-        return false;
+    uart_send(".", 1);
 
     RADIO_DATAWHITEIV = channel & 0x3F;
     RADIO_FREQUENCY = frequency;
@@ -148,52 +148,115 @@ bool radio_prepare(uint8_t channel, uint32_t addr, uint32_t crcinit)
     return true;
 }
 
-int16_t radio_send(const uint8_t *data, uint32_t f)
+void radio_send(const uint8_t *data, uint32_t f)
 {
+    // set TX status flag
     status |= STATUS_TX;
     flags |= f;
 
     if (f & RADIO_FLAGS_RX_NEXT)
         RADIO_SHORTS |= RADIO_SHORTCUT_DISABLED_RXEN;
 
+    // make sure, transmission is started after ramp-up is complete
+    RADIO_SHORTS |= RADIO_SHORTCUT_READY_START;
+
+    // clear all radio event flags
+    RADIO_EVENT_READY = 0;
+    RADIO_EVENT_ADDRESS = 0;
+    RADIO_EVENT_PAYLOAD = 0;
+    RADIO_EVENT_END = 0;
+    RADIO_EVENT_DISABLED = 0;
+    RADIO_EVENT_UNKNOWN1 = 0;
+    RADIO_EVENT_UNKNOWN2 = 0;
+    RADIO_EVENT_UNKNOWN3 = 0;
+    RADIO_EVENT_UNKNOWN4 = 0;
+
+    // initiate packet transmission
     RADIO_PACKETPTR = (uint32_t) data;
     RADIO_TASK_TXEN = 1;
+    uart_send(">", 1);
 
-    //uart_send_string(".");
+    // wait until READY flag is raised
+    while (!RADIO_EVENT_READY)
+        asm("nop");
+    uart_send("r", 1);
 
-    return 0;
+    // wait until ADDRESS flag is raised
+    while (!RADIO_EVENT_ADDRESS)
+        asm("nop");
+    uart_send("a", 1);
+
+    // wait until PAYLOAD flag is raised
+/*    while (!RADIO_EVENT_PAYLOAD)
+        asm("nop");
+    uart_send("p", 1);
+
+    // wait until END flag is raised
+    while (!RADIO_EVENT_END)
+        asm("nop");
+    uart_send("e", 1);
+
+    // wait until DISABLED flag is raised
+    while (!RADIO_EVENT_DISABLED)
+        asm("nop");
+    uart_send("d", 1);*/
+
+
+    uint32_t s, a, b, c, d;
+    {
+        s = RADIO_STATE;
+        a = RADIO_EVENT_UNKNOWN1;
+        b = RADIO_EVENT_UNKNOWN2;
+        c = RADIO_EVENT_UNKNOWN3;
+        d = RADIO_EVENT_UNKNOWN4;
+        asm("nop");
+    }
+    while (1);
+    // !(a | b | c | d)
+
+    uart_send("\n", 1);
 }
 
-int16_t radio_recv(uint32_t f)
+void radio_recv(uint32_t f)
 {
+    // set RX status flag
     status |= STATUS_RX;
     flags |= f;
 
     if (f & RADIO_FLAGS_TX_NEXT)
         RADIO_SHORTS |= RADIO_SHORTCUT_DISABLED_TXEN;
 
+    // receive packet
     RADIO_PACKETPTR = (uint32_t) inbuf;
     RADIO_TASK_RXEN = 1;
-
-    return 0;
 }
 
-bool radio_stop(void)
+void radio_stop()
 {
     if (!(status & STATUS_BUSY))
-        return false;
+        // not started
+        return;
 
     flags = 0;
-    RADIO_SHORTS = default_shortcuts;
 
+    // clear DISABLED event
     RADIO_EVENT_DISABLED = 0;
-    RADIO_TASK_DISABLE = 1;
+
+    // manually disable radio
+//    RADIO_TASK_STOP = 1;
+//    RADIO_TASK_DISABLE = 1;
+
+    // automaticall disable radio as soon as current task is finished
+    RADIO_SHORTS |= RADIO_SHORTCUT_END_DISABLE;
+
+    // wait until radio is disabled
     while (!RADIO_EVENT_DISABLED)
         asm("nop");
+    // clear DISABLED event
+    RADIO_EVENT_DISABLED = 0;
 
+    // clear BUSY status flags
     status &= ~STATUS_BUSY;
-
-    return true;
 }
 
 void radio_set_out_buffer(uint8_t *buf)
@@ -201,7 +264,7 @@ void radio_set_out_buffer(uint8_t *buf)
     outbuf = buf;
 }
 
-int16_t radio_init(void)
+void radio_init(void)
 {
     // wait for high frequency clock to get started
     if (!CLOCK_EVENT_HFCLKSTARTED)
@@ -223,11 +286,13 @@ int16_t radio_init(void)
      */
     if (FICR_OVERRIDE_ENABLED_BLE_1MBIT)
     {
+        uart_send_string("Factory overrides detected.\n");
         RADIO_OVERRIDE[0] = FICR_BLE_1MBIT[0];
         RADIO_OVERRIDE[1] = FICR_BLE_1MBIT[1];
         RADIO_OVERRIDE[2] = FICR_BLE_1MBIT[2];
         RADIO_OVERRIDE[3] = FICR_BLE_1MBIT[3];
         RADIO_OVERRIDE[4] = FICR_BLE_1MBIT[4] | 0x80000000;
+        uart_send_string("Factory overrides applied.\n");
     }
 
     RADIO_MODE = RADIO_MODE_BLE_1MBIT;
@@ -241,7 +306,8 @@ int16_t radio_init(void)
      */
     RADIO_TIFS = 150;
 
-    /* nRF51 Series Reference Manual v2.1, section 16.2.9, page 88
+    /*
+     *  nRF51 Series Reference Manual v2.1, section 16.2.9, page 88
      *
      * Enable data whitening, set the maximum payload length and set the
      * access address size (3 + 1 octets).
@@ -261,7 +327,8 @@ int16_t radio_init(void)
     RADIO_RXADDRESSES = RADIO_RXADDR1;
     RADIO_TXADDRESS   = RADIO_TXADDR0;
 
-    /* nRF51 Series Reference Manual v2.1, section 16.1.7, page 76
+    /*
+     * nRF51 Series Reference Manual v2.1, section 16.1.7, page 76
      * nRF51 Series Reference Manual v2.1, sections 16.1.16-17, page 90
      *
      * Configure the CRC length (3 octets), polynominal and set it to
@@ -289,13 +356,13 @@ int16_t radio_init(void)
      * nRF51 Series Reference Manual v2.1, section 16.1.10-11, pages 78-80
      * nRF51 Series Reference Manual v2.1, section 16.2.1, page 85
      *
-     * Enable READY_START short: when the READY event happens, initialize
-     * the START task.
+     * When tx/rx ramp-up (TXRU/RXRU) is complete and the READY event occurs,
+     * immediately proceed with START.
      *
-     * Enable END_DISABLE short: when the END event happens, initialize the
-     * DISABLE task.
+     * When TX or RX are completed and the END event occurs,
+     * immediately proceed with DISABLE.
      */
-    RADIO_SHORTS = default_shortcuts;
+    RADIO_SHORTS = RADIO_SHORTCUT_READY_START | RADIO_SHORTCUT_END_DISABLE;
 
     // Disable all radio interrupts
     RADIO_INTENCLR = ~0;
@@ -312,6 +379,4 @@ int16_t radio_init(void)
     status = STATUS_INITIALIZED;
 
     uart_send_string("Radio initialized.\n");
-
-    return 0;
 }
