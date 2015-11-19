@@ -130,7 +130,7 @@ bool radio_prepare(uint8_t channel, uint32_t addr, uint32_t crcinit)
 
     uint8_t frequency = radio_channel_to_frequency(channel);
 
-    uart_send(".", 1);
+//    uart_send(".", 1);
 
     RADIO_DATAWHITEIV = channel & 0x3F;
     RADIO_FREQUENCY = frequency;
@@ -143,12 +143,12 @@ bool radio_prepare(uint8_t channel, uint32_t addr, uint32_t crcinit)
 
     RADIO_CRCINIT = crcinit;
 
-    uart_send_string("Radio prepared.\n");
+//    uart_send_string("Radio prepared.\n");
 
     return true;
 }
 
-void radio_send(const uint8_t *data, uint32_t f)
+void radio_send(uint8_t *data, uint32_t f)
 {
     // set TX status flag
     status |= STATUS_TX;
@@ -166,14 +166,13 @@ void radio_send(const uint8_t *data, uint32_t f)
     RADIO_EVENT_PAYLOAD = 0;
     RADIO_EVENT_END = 0;
     RADIO_EVENT_DISABLED = 0;
-    RADIO_EVENT_UNKNOWN1 = 0;
-    RADIO_EVENT_UNKNOWN2 = 0;
-    RADIO_EVENT_UNKNOWN3 = 0;
-    RADIO_EVENT_UNKNOWN4 = 0;
 
     // initiate packet transmission
+    uint32_t *packet = (uint32_t) data;
+    uint32_t maxlen = radio_get_max_payload_length;
     RADIO_PACKETPTR = (uint32_t) data;
     RADIO_TASK_TXEN = 1;
+/*
     uart_send(">", 1);
 
     // wait until READY flag is raised
@@ -186,8 +185,10 @@ void radio_send(const uint8_t *data, uint32_t f)
         asm("nop");
     uart_send("a", 1);
 
+    uint32_t s = RADIO_STATE;
+
     // wait until PAYLOAD flag is raised
-/*    while (!RADIO_EVENT_PAYLOAD)
+    while (!RADIO_EVENT_PAYLOAD)
         asm("nop");
     uart_send("p", 1);
 
@@ -199,22 +200,12 @@ void radio_send(const uint8_t *data, uint32_t f)
     // wait until DISABLED flag is raised
     while (!RADIO_EVENT_DISABLED)
         asm("nop");
-    uart_send("d", 1);*/
-
-
-    uint32_t s, a, b, c, d;
-    {
-        s = RADIO_STATE;
-        a = RADIO_EVENT_UNKNOWN1;
-        b = RADIO_EVENT_UNKNOWN2;
-        c = RADIO_EVENT_UNKNOWN3;
-        d = RADIO_EVENT_UNKNOWN4;
-        asm("nop");
-    }
-    while (1);
-    // !(a | b | c | d)
+    uart_send("d", 1);
 
     uart_send("\n", 1);
+*/
+    // clear TX status flag
+    status &= ~STATUS_TX;
 }
 
 void radio_recv(uint32_t f)
@@ -347,9 +338,9 @@ void radio_init(void)
      * payload field: S0, LENGTH and S1. These fields can be used to store
      * the PDU header.
      */
-    radio_set_lf_length(8);
-    radio_set_s0_length(1);
-    radio_set_s1_length(0);
+    radio_set_length_lf(8);
+    radio_set_length_s0(1);
+    radio_set_length_s1(0);
 
     /*
      * nRF51 Series Reference Manual v2.1, section 16.1.8, page 76
@@ -367,11 +358,10 @@ void radio_init(void)
     // Disable all radio interrupts
     RADIO_INTENCLR = ~0;
     // Trigger radio interrupt when an END event happens
-    RADIO_INTENSET = RADIO_INTERRUPT_END;
+    //RADIO_INTENSET = RADIO_INTERRUPT_END;
 
     radio_set_callbacks(NULL, NULL);
     RADIO_TXPOWER = RADIO_TXPOWER_0DBM;
-    radio_set_out_buffer(NULL);
 
     RADIO_PACKETPTR = (uint32_t) inbuf;
     memset(inbuf, 0, sizeof(inbuf));

@@ -66,8 +66,11 @@ int main()
         0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,     /* AdvA */
         0x0F,                       /* AD Length */
         0x09,                       /* AD Type */
-        0x62, 0x6C, 0x65, 0x73, 0x73, 0x65, 0x64, 0x20, /* AD Data */
-        0x64, 0x65, 0x76, 0x69, 0x63, 0x65
+        /* AD Data */
+        'b', 'l', 'e', 's',
+        's', 'e', 'd', ' ',
+        'd', 'e', 'v', 'i',
+        'c', 'e'
     };
 
     /* Link Layer specification Section 2.1.2, Core 4.1 page 2503 */
@@ -89,7 +92,7 @@ int main()
         uint8_t channel = advertising_channels[channel_index];
         radio_prepare(channel, ADV_CHANNEL_AA, ADV_CHANNEL_CRC);
         radio_send(adv_nonconn_ind, 0);
-        delay_ms(100);
+        delay_ms(10);
     }
 
     return 0;
