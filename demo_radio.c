@@ -24,6 +24,12 @@ void uart_setup()
     // initialize buffers
     uart_init_fifo();
 
+    // enable UART interrupt
+    uart_interrupt_upon_RXDRDY_enable;
+//    uart_interrupt_upon_RXTO_enable;
+//    uart_interrupt_upon_ERROR_enable;
+    uart_interrupt_enable;
+
     // configure transmission
     nrf_gpio_pin_dir_set(PIN_UART_TXD, NRF_GPIO_PIN_DIR_OUTPUT);
     uart_select_pin_as_TXD(PIN_UART_TXD);
@@ -35,9 +41,6 @@ void uart_setup()
 
     // configure reception
     uart_select_pin_as_RXD(PIN_UART_RXD);
-    uart_interrupt_upon_RXDRDY_enable;
-    uart_interrupt_upon_RXTO_enable;
-    uart_interrupt_upon_ERROR_enable;
     uart_start_receiver;
 
     uart_enable;
@@ -56,7 +59,7 @@ int main()
     while (1)
     {
         radio_recv(0);
-        delay_ms(10);
+        delay_ms(100);
     }
 
     

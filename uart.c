@@ -22,6 +22,9 @@ struct fifo_s uart_inbuffer, uart_outbuffer;
 struct fifo_s *uart_tx_fifo;
 struct fifo_s *uart_rx_fifo;
 
+// we need to know, whether we are already transmitting or not
+volatile bool uart_transmitting = false;
+
 /*
  * Initialize FIFO buffers
  */
@@ -53,20 +56,19 @@ void UART0_Handler()
         // send another byte
         if (fifo_available(uart_tx_fifo) > 0)
         {
-            // one byte
             char outgoing;
             fifo_read(uart_tx_fifo, &outgoing);
-
-            // to UART
             uart_write(outgoing);
         }
-
-        // TX buffer empty
-        if (fifo_available(uart_tx_fifo) <= 0)
-            // disable future interrupts on a TXDRDY event
+        else // TX buffer is empty
+        {
+            uart_stop_transmitter;
+            uart_transmitting = false;
+            // disable future interrupts on TXDRDY event
             uart_interrupt_upon_TXDRDY_disable;
+        }
 
-        // clear before or after sending next byte from TX buffer?
+        // clear current TRANSMITTER READY event
         clear_event(uart_event_TXDRDY);
     }
 
@@ -109,8 +111,6 @@ void UART0_Handler()
  */
 void uart_send(char* buffer, uint8_t length)
 {
-    uart_stop_transmitter;
-    
     // copy data to internal buffer to prevent buffer changes during transmission
     uint8_t timeout = 10;
     for (uint8_t i=0; i<length; i++)
@@ -127,19 +127,23 @@ void uart_send(char* buffer, uint8_t length)
         fifo_write(uart_tx_fifo, buffer+i);
     }
 
-    // enable transmitter ready event interrupt
-    uart_interrupt_upon_TXDRDY_enable;
+    // no need to interrupt ongoing transmissions
+    if (!uart_transmitting)
+    {
+        // set as early as possible, so that interrupts can know about it
+        uart_transmitting = true;
 
-    // enable UART interrupt
-    uart_interrupt_enable;
+        // enable TRANSMITTER READY event interrupt
+        uart_interrupt_upon_TXDRDY_enable;
 
-    // enable transmission 
-    uart_start_transmitter;
-    
-    // initiate transmission cycle by writing the first byte to tranmitter buffer
-    char outgoing;
-    fifo_read(uart_tx_fifo, &outgoing);
-    uart_write(outgoing);
+        // enable transmission
+        uart_start_transmitter;
+
+        // initiate transmission cycle by writing the first byte to transmitter buffer
+        char outgoing;
+        fifo_read(uart_tx_fifo, &outgoing);
+        uart_write(outgoing);
+    }
 }
 
 /*

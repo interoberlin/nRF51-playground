@@ -180,6 +180,10 @@
 /*
  * Register macros
  */
+// Interrupt-related
+#define RADIO_INTERRUPT                     1
+#define radio_interrupt_enable              interrupt_enable(RADIO_INTERRUPT)
+#define radio_interrupt_disable             interrupt_disable(RADIO_INTERRUPT)
 
 // Event-related
 #define radio_clear_all_events  \

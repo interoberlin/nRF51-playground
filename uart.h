@@ -11,6 +11,7 @@
 #define UART_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "heap.h"
 #include "fifo.h"
 //#include "core_cmFunc.h"

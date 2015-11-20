@@ -70,10 +70,11 @@ void RADIO_Handler()
     uint8_t old_status;
     bool active;
 
-    RADIO_EVENT_END = 0UL;
+    // clear END event
+    RADIO_EVENT_END = 0;
 
     //uart_send("i",1);
-
+/*
     active = false;
     old_status = status;
     status = STATUS_INITIALIZED;
@@ -106,6 +107,7 @@ void RADIO_Handler()
         if (send_callback)
             send_callback(active);
     }
+    */
 }
 
 void radio_set_callbacks(radio_receive_callback_t rcb, radio_send_callback_t scb)
@@ -230,26 +232,6 @@ void radio_recv(uint32_t f)
 
     // wait for events
     uart_send(">", 1);
-
-    // wait until READY flag is raised
-    while (!RADIO_EVENT_READY)
-        asm("nop");
-    uart_send("r", 1);
-
-    // wait until ADDRESS flag is raised
-    while (!RADIO_EVENT_ADDRESS)
-        asm("nop");
-    uart_send("a", 1);
-
-    // wait until PAYLOAD flag is raised
-    while (!RADIO_EVENT_PAYLOAD)
-        asm("nop");
-    uart_send("p", 1);
-
-    // wait until END flag is raised
-    while (!RADIO_EVENT_END)
-        asm("nop");
-    uart_send("e", 1);
 
     // wait until DISABLED flag is raised
     while (!RADIO_EVENT_DISABLED)
@@ -396,6 +378,9 @@ void radio_init(void)
     RADIO_INTENCLR = ~0;
     // Trigger radio interrupt when an END event happens
     //RADIO_INTENSET = RADIO_INTERRUPT_END;
+
+    // Important, otherwise the above RADIO_ISR is never invoked
+    //radio_interrupt_enable;
 
 //    radio_set_callbacks(NULL, NULL);
     RADIO_TXPOWER = RADIO_TXPOWER_0DBM;
