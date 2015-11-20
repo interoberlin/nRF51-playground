@@ -100,25 +100,26 @@
  */
 
 // for RADIO_SHORTS
-#define RADIO_SHORTCUT_READY_START          0x001
-#define RADIO_SHORTCUT_END_DISABLE          0x002
-#define RADIO_SHORTCUT_DISABLED_TXEN        0x004
-#define RADIO_SHORTCUT_DISABLED_RXEN        0x008
-#define RADIO_SHORTCUT_ADDRESS_RSSISTART    0x010
-#define RADIO_SHORTCUT_END_START            0x020
-#define RADIO_SHORTCUT_ADDRESS_BCSTART      0x040
-#define RADIO_SHORTCUT_DISABLED_RSSISTOP    0x100
+#define RADIO_SHORTCUT_READY_START          (1 << 0)
+#define RADIO_SHORTCUT_END_DISABLE          (1 << 1)
+#define RADIO_SHORTCUT_DISABLED_TXEN        (1 << 2)
+#define RADIO_SHORTCUT_DISABLED_RXEN        (1 << 3)
+#define RADIO_SHORTCUT_ADDRESS_RSSISTART    (1 << 4)
+#define RADIO_SHORTCUT_END_START            (1 << 5)
+#define RADIO_SHORTCUT_ADDRESS_BCSTART      (1 << 6)
+#define RADIO_SHORTCUT_DISABLED_RSSISTOP    (1 << 8)
 
 // for RADIO_INTENSET and RADIO_INTENCLR
-#define RADIO_INTERRUPT_READY               0x001
-#define RADIO_INTERRUPT_ADDRESS             0x002
-#define RADIO_INTERRUPT_PAYLOAD             0x004
-#define RADIO_INTERRUPT_END                 0x008
-#define RADIO_INTERRUPT_DISABLED            0x010
-#define RADIO_INTERRUPT_DEVMATCH            0x020
-#define RADIO_INTERRUPT_DEVMISS             0x040
-#define RADIO_INTERRUPT_RSSIEND             0x080
-#define RADIO_INTERRUPT_BCMATCH             0x400
+#define RADIO_INTERRUPT_READY               (1 << 0)
+#define RADIO_INTERRUPT_ADDRESS             (1 << 1)
+#define RADIO_INTERRUPT_PAYLOAD             (1 << 2)
+#define RADIO_INTERRUPT_END                 (1 << 3)
+#define RADIO_INTERRUPT_DISABLED            (1 << 4)
+#define RADIO_INTERRUPT_DEVMATCH            (1 << 5)
+#define RADIO_INTERRUPT_DEVMISS             (1 << 6)
+#define RADIO_INTERRUPT_RSSIEND             (1 << 7)
+#define RADIO_INTERRUPT_BCMATCH             (1 << 10)
+#define RADIO_INTERRUPTS_ALL                0x4F
 
 // for RADIO_TXPOWER
 #define RADIO_TXPOWER_POS4DBM               0x04
@@ -179,6 +180,18 @@
 /*
  * Register macros
  */
+
+// Event-related
+#define radio_clear_all_events  \
+{                               \
+    RADIO_EVENT_READY = 0;      \
+    RADIO_EVENT_ADDRESS = 0;    \
+    RADIO_EVENT_PAYLOAD = 0;    \
+    RADIO_EVENT_END = 0;        \
+    RADIO_EVENT_DISABLED = 0;   \
+}
+
+// CRC-related
 #define radio_crcstatus_ok                 (RADIO_CRCSTATUS == 1)
 
 // for RADIO_PCNF0
@@ -215,8 +228,8 @@
  * Link Layer
  * Bluetooth Core 4.1 specification, section 2.1, page 2503
  */
-#define RADIO_MAX_PDU            39
-#define RADIO_MIN_PDU            2
+#define RADIO_PDU_MAX            39
+#define RADIO_PDU_MIN            2
 
 #define RADIO_FLAGS_RX_NEXT      1
 #define RADIO_FLAGS_TX_NEXT      2

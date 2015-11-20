@@ -47,6 +47,18 @@ int main()
 {
     uart_setup();
     radio_init();
+
+    /*
+     * Receiver demo:
+     * Configure radio and wait for interrupts
+     */
+    uart_send_string("Ready to receive BLE packets:\n");
+    while (1)
+    {
+        radio_recv(0);
+        delay_ms(10);
+    }
+
     
     /* Link Layer specification section 2.3, Core 4.1, page 2504
      * Link Layer specification section 2.3.1.3, Core 4.1, page 2507

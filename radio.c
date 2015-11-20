@@ -14,10 +14,10 @@
 
 #include "radio.h"
 
-#define MAX_BUF_LEN                    RADIO_MAX_PDU
-#define MAX_PAYLOAD_LENGTH            (RADIO_MAX_PDU - 2)
+#define MAX_BUF_LEN                    RADIO_PDU_MAX
+#define MAX_PAYLOAD_LENGTH            (RADIO_PDU_MAX - 2)
 
-static uint8_t inbuf[MAX_BUF_LEN] __attribute__ ((aligned));
+static uint8_t inbuf[] __attribute__ ((aligned)) = "0123456789012345678901234567890123456789";
 static uint8_t *outbuf;
 
 static volatile uint8_t status;
@@ -72,7 +72,7 @@ void RADIO_Handler()
 
     RADIO_EVENT_END = 0UL;
 
-    uart_send("i",1);
+    //uart_send("i",1);
 
     active = false;
     old_status = status;
@@ -161,11 +161,7 @@ void radio_send(uint8_t *data, uint32_t f)
     RADIO_SHORTS |= RADIO_SHORTCUT_READY_START;
 
     // clear all radio event flags
-    RADIO_EVENT_READY = 0;
-    RADIO_EVENT_ADDRESS = 0;
-    RADIO_EVENT_PAYLOAD = 0;
-    RADIO_EVENT_END = 0;
-    RADIO_EVENT_DISABLED = 0;
+    radio_clear_all_events;
 
     // initiate packet transmission
     uint32_t *packet = (uint32_t) data;
@@ -214,12 +210,53 @@ void radio_recv(uint32_t f)
     status |= STATUS_RX;
     flags |= f;
 
-    if (f & RADIO_FLAGS_TX_NEXT)
-        RADIO_SHORTS |= RADIO_SHORTCUT_DISABLED_TXEN;
+    // clear all radio event flags
+    radio_clear_all_events;
 
-    // receive packet
+    RADIO_INTENSET = RADIO_INTERRUPTS_ALL;
+
+    RADIO_SHORTS = \
+            RADIO_SHORTCUT_READY_START      | \
+            RADIO_SHORTCUT_END_DISABLE;
+
+    // fill buffer with zeroes
+    //memset(inbuf, 0, sizeof(inbuf));
+
+    // set memory where the received packet will be written to
     RADIO_PACKETPTR = (uint32_t) inbuf;
+
+    // initiate receiver ramp-up
     RADIO_TASK_RXEN = 1;
+
+    // wait for events
+    uart_send(">", 1);
+
+    // wait until READY flag is raised
+    while (!RADIO_EVENT_READY)
+        asm("nop");
+    uart_send("r", 1);
+
+    // wait until ADDRESS flag is raised
+    while (!RADIO_EVENT_ADDRESS)
+        asm("nop");
+    uart_send("a", 1);
+
+    // wait until PAYLOAD flag is raised
+    while (!RADIO_EVENT_PAYLOAD)
+        asm("nop");
+    uart_send("p", 1);
+
+    // wait until END flag is raised
+    while (!RADIO_EVENT_END)
+        asm("nop");
+    uart_send("e", 1);
+
+    // wait until DISABLED flag is raised
+    while (!RADIO_EVENT_DISABLED)
+        asm("nop");
+    uart_send("d", 1);
+
+    uart_send("\n", 1);
 }
 
 void radio_stop()
@@ -360,11 +397,11 @@ void radio_init(void)
     // Trigger radio interrupt when an END event happens
     //RADIO_INTENSET = RADIO_INTERRUPT_END;
 
-    radio_set_callbacks(NULL, NULL);
+//    radio_set_callbacks(NULL, NULL);
     RADIO_TXPOWER = RADIO_TXPOWER_0DBM;
 
+    // to avoid hard faults due to invalid pointer
     RADIO_PACKETPTR = (uint32_t) inbuf;
-    memset(inbuf, 0, sizeof(inbuf));
 
     status = STATUS_INITIALIZED;
 
