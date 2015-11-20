@@ -1,6 +1,7 @@
 
 /**
- * UART library for the Nordic Semiconductor nRF51 series
+ * UART library
+ * for the Nordic Semiconductor nRF51 series
  *
  * Author: Matthias Bock <mail@matthiasbock.net>
  * License: GNU GPLv3
