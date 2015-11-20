@@ -117,9 +117,15 @@ void uart_send(char* buffer, uint8_t length)
         if (timeout <= 0)
             break;
         // push current buffer char to FIFO
-        if (*(buffer+i) == '\n')
-            fifo_write(uart_tx_fifo, (char*) &"\r");
         fifo_write(uart_tx_fifo, buffer+i);
+        if (*(buffer+i) == '\n')
+        {
+            while (fifo_full(uart_tx_fifo) && (timeout--) > 0)
+                delay_us(100);
+            if (timeout <= 0)
+                break;
+            fifo_write(uart_tx_fifo, (char*) &"\r");
+        }
     }
 
     // no need to interrupt ongoing transmissions

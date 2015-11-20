@@ -14,16 +14,14 @@
 
 #include "radio.h"
 
-#define MAX_BUF_LEN                    RADIO_PDU_MAX
+#define MAX_BUF_LEN                    50
 #define MAX_PAYLOAD_LENGTH            (RADIO_PDU_MAX - 2)
 
-static uint8_t inbuf[] __attribute__ ((aligned)) = "0123456789012345678901234567890123456789";
-static uint8_t *outbuf;
+static uint8_t inbuf[] __attribute__ ((aligned)) = "01234567890123456789012345678901234567890123456789";
+//static uint8_t *outbuf;
 
-static volatile uint8_t status;
-static volatile uint32_t flags;
-
-// states of the internal state machine
+// internal state machine
+static volatile uint8_t status = 0;
 #define STATUS_INITIALIZED          1
 #define STATUS_RX                   2
 #define STATUS_TX                   4
@@ -60,6 +58,34 @@ uint8_t radio_channel_to_frequency(uint8_t channel)
     }
 }
 
+void nibble2hex(char *s, uint8_t n)
+{
+    if (n < 10)
+        *s = 0x30+n;
+    else if (n < 16)
+        *s = 0x57+n;
+    else
+        *s = 0x20;
+}
+
+void char2hex(char *s, char *c)
+{
+    // higher nibble
+    nibble2hex( s,  ((*c) & 0xF0) >> 4 );
+    // lower nibble
+    nibble2hex( s+1, (*c) & 0x0F );
+}
+
+void print_packet(char *buffer, uint32_t length)
+{
+    for (uint32_t i=0; i<length; i++)
+    {
+        char s[] = "   ";
+        char2hex(s, buffer++);
+        uart_send(s, 3);
+    }
+}
+
 /**
  * Radio interrupt handler
  *
@@ -67,11 +93,24 @@ uint8_t radio_channel_to_frequency(uint8_t channel)
  */
 void RADIO_Handler()
 {
-    uint8_t old_status;
-    bool active;
+    if (RADIO_EVENT_END)
+    {
+        // Transmission complete
+        if (status & STATUS_TX)
+        {
+            status &= ~STATUS_TX;
+        }
 
-    // clear END event
-    RADIO_EVENT_END = 0;
+        // Reception complete
+        if (status & STATUS_RX)
+        {
+            print_packet(inbuf, MAX_BUF_LEN);
+            status &= ~STATUS_RX;
+        }
+
+        // clear
+        RADIO_EVENT_END = 0;
+    }
 
     //uart_send("i",1);
 /*
@@ -132,8 +171,6 @@ bool radio_prepare(uint8_t channel, uint32_t addr, uint32_t crcinit)
 
     uint8_t frequency = radio_channel_to_frequency(channel);
 
-//    uart_send(".", 1);
-
     RADIO_DATAWHITEIV = channel & 0x3F;
     RADIO_FREQUENCY = frequency;
 
@@ -145,34 +182,32 @@ bool radio_prepare(uint8_t channel, uint32_t addr, uint32_t crcinit)
 
     RADIO_CRCINIT = crcinit;
 
-//    uart_send_string("Radio prepared.\n");
+    uart_send_string("Radio prepared.\n");
 
     return true;
 }
 
-void radio_send(uint8_t *data, uint32_t f)
+void radio_send(uint8_t *data)
 {
-    // set TX status flag
     status |= STATUS_TX;
-    flags |= f;
-
-    if (f & RADIO_FLAGS_RX_NEXT)
-        RADIO_SHORTS |= RADIO_SHORTCUT_DISABLED_RXEN;
 
     // make sure, transmission is started after ramp-up is complete
-    RADIO_SHORTS |= RADIO_SHORTCUT_READY_START;
+    RADIO_SHORTS = RADIO_SHORTCUT_READY_START | RADIO_SHORTCUT_END_DISABLE;
+
+    // only invoke radio interrupt, when an END event happens
+    RADIO_INTENCLR = ~0;
+    RADIO_INTENSET = RADIO_INTERRUPT_END;
 
     // clear all radio event flags
     radio_clear_all_events;
 
     // initiate packet transmission
-    uint32_t *packet = (uint32_t) data;
-    uint32_t maxlen = radio_get_max_payload_length;
     RADIO_PACKETPTR = (uint32_t) data;
     RADIO_TASK_TXEN = 1;
-/*
+
     uart_send(">", 1);
 
+/*
     // wait until READY flag is raised
     while (!RADIO_EVENT_READY)
         asm("nop");
@@ -194,44 +229,38 @@ void radio_send(uint8_t *data, uint32_t f)
     while (!RADIO_EVENT_END)
         asm("nop");
     uart_send("e", 1);
-
+*/
     // wait until DISABLED flag is raised
     while (!RADIO_EVENT_DISABLED)
         asm("nop");
     uart_send("d", 1);
 
     uart_send("\n", 1);
-*/
-    // clear TX status flag
-    status &= ~STATUS_TX;
 }
 
-void radio_recv(uint32_t f)
+void radio_receive(uint32_t f)
 {
     // set RX status flag
     status |= STATUS_RX;
-    flags |= f;
 
     // clear all radio event flags
     radio_clear_all_events;
 
-    RADIO_INTENSET = RADIO_INTERRUPTS_ALL;
+    // reception starts, as soon as receiver is READY
+    // receiver shutdown, as soon as reception ENDs
+    RADIO_SHORTS = RADIO_SHORTCUT_READY_START | RADIO_SHORTCUT_END_DISABLE;
 
-    RADIO_SHORTS = \
-            RADIO_SHORTCUT_READY_START      | \
-            RADIO_SHORTCUT_END_DISABLE;
+    // only invoke radio interrupt, when reception is complete
+    RADIO_INTENCLR = ~0;
+    RADIO_INTENSET = RADIO_INTERRUPT_END;
 
     // fill buffer with zeroes
-    //memset(inbuf, 0, sizeof(inbuf));
+    memset(inbuf, 0, sizeof(inbuf));
 
-    // set memory where the received packet will be written to
+    // receive
     RADIO_PACKETPTR = (uint32_t) inbuf;
-
-    // initiate receiver ramp-up
+    uart_send("<", 1);
     RADIO_TASK_RXEN = 1;
-
-    // wait for events
-    uart_send(">", 1);
 
     // wait until DISABLED flag is raised
     while (!RADIO_EVENT_DISABLED)
@@ -243,18 +272,7 @@ void radio_recv(uint32_t f)
 
 void radio_stop()
 {
-    if (!(status & STATUS_BUSY))
-        // not started
-        return;
-
-    flags = 0;
-
-    // clear DISABLED event
-    RADIO_EVENT_DISABLED = 0;
-
-    // manually disable radio
-//    RADIO_TASK_STOP = 1;
-//    RADIO_TASK_DISABLE = 1;
+    radio_clear_all_events;
 
     // automaticall disable radio as soon as current task is finished
     RADIO_SHORTS |= RADIO_SHORTCUT_END_DISABLE;
@@ -262,16 +280,12 @@ void radio_stop()
     // wait until radio is disabled
     while (!RADIO_EVENT_DISABLED)
         asm("nop");
+
     // clear DISABLED event
     RADIO_EVENT_DISABLED = 0;
 
-    // clear BUSY status flags
+    // clear STATUS_RX and STATUS_TX flags
     status &= ~STATUS_BUSY;
-}
-
-void radio_set_out_buffer(uint8_t *buf)
-{
-    outbuf = buf;
 }
 
 void radio_init(void)
@@ -361,34 +375,18 @@ void radio_init(void)
     radio_set_length_s0(1);
     radio_set_length_s1(0);
 
-    /*
-     * nRF51 Series Reference Manual v2.1, section 16.1.8, page 76
-     * nRF51 Series Reference Manual v2.1, section 16.1.10-11, pages 78-80
-     * nRF51 Series Reference Manual v2.1, section 16.2.1, page 85
-     *
-     * When tx/rx ramp-up (TXRU/RXRU) is complete and the READY event occurs,
-     * immediately proceed with START.
-     *
-     * When TX or RX are completed and the END event occurs,
-     * immediately proceed with DISABLE.
-     */
-    RADIO_SHORTS = RADIO_SHORTCUT_READY_START | RADIO_SHORTCUT_END_DISABLE;
-
     // Disable all radio interrupts
     RADIO_INTENCLR = ~0;
-    // Trigger radio interrupt when an END event happens
-    //RADIO_INTENSET = RADIO_INTERRUPT_END;
 
     // Important, otherwise the above RADIO_ISR is never invoked
-    //radio_interrupt_enable;
+    radio_interrupt_enable;
 
-//    radio_set_callbacks(NULL, NULL);
     RADIO_TXPOWER = RADIO_TXPOWER_0DBM;
 
     // to avoid hard faults due to invalid pointer
     RADIO_PACKETPTR = (uint32_t) inbuf;
 
-    status = STATUS_INITIALIZED;
+    status |= STATUS_INITIALIZED;
 
     uart_send_string("Radio initialized.\n");
 }

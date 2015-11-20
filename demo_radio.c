@@ -35,7 +35,7 @@ void uart_setup()
     uart_select_pin_as_TXD(PIN_UART_TXD);
     uart_select_pin_as_RTS(UART_PIN_DISABLE);
     uart_select_pin_as_CTS(UART_PIN_DISABLE);
-    uart_set_baud(baud_9600);
+    uart_set_baud(baud_115200);
     uart_set_parity_exclude;
     uart_flow_control_enable;
 
@@ -58,8 +58,8 @@ int main()
     uart_send_string("Ready to receive BLE packets:\n");
     while (1)
     {
-        radio_recv(0);
-        delay_ms(100);
+        radio_receive();
+        delay_ms(150);
     }
 
     
@@ -106,7 +106,7 @@ int main()
             channel_index = 0;
         uint8_t channel = advertising_channels[channel_index];
         radio_prepare(channel, ADV_CHANNEL_AA, ADV_CHANNEL_CRC);
-        radio_send(adv_nonconn_ind, 0);
+        radio_send(adv_nonconn_ind);
         delay_ms(10);
     }
 

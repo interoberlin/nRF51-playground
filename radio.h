@@ -250,9 +250,8 @@ typedef void (*radio_send_callback_t) (bool active);
 void radio_init();
 void radio_set_callbacks(radio_receive_callback_t recv_callback, radio_send_callback_t send_callback);
 bool radio_prepare(uint8_t ch, uint32_t addr, uint32_t crcinit);
-void radio_recv(uint32_t flags);
-void radio_send(uint8_t *data, uint32_t flags);
+void radio_send(uint8_t *data);
+void radio_receive();
 void radio_stop();
-void radio_set_out_buffer(uint8_t *buf);
 
 #endif
