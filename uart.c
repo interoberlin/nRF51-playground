@@ -6,14 +6,8 @@
  * Author: Matthias Bock <mail@matthiasbock.net>
  * License: GNU GPLv3
  */
- 
+
 #include "uart.h"
-
-/*
- * Transmitting data
- */
-
-#ifdef UART_SEND_USING_INTERRUPTS
 
 // reserve memory for incoming and outgoing bytes
 struct fifo_s uart_inbuffer, uart_outbuffer;
@@ -77,7 +71,8 @@ void UART0_Handler()
     {
         if (!fifo_full(uart_rx_fifo))
         {
-            // must be cleared before reading RX, see nRF Series Reference manual p.153
+            // must be cleared before reading RX,
+            // see nRF51 Series Reference Manual p.153
             clear_event(uart_event_RXDRDY);
 
             // receive one byte
@@ -187,20 +182,3 @@ uint8_t uart_receive(char* buffer, uint8_t max)
 {
     return 0;
 }
-
-#else // #ifdef UART_SEND_USING_INTERRUPTS
-
-void uart_send(char* buffer, uint8_t length)
-{
-    // write byte by byte to UART output
-    for (int i=0; i<length; i++)
-    {
-        uart_write( *(buffer+i) );
-        // enable transmission 
-        uart_start_transmitter;
-        // wait for transmission to complete
-        delay_us(300);
-    }
-}
-
-#endif // #ifdef UART_SEND_USING_INTERRUPTS
