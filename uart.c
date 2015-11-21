@@ -148,27 +148,6 @@ void uart_send(char* buffer, uint8_t length)
 }
 
 /*
- * Count the number of characters in the string until the null terminator.
- * The null terminator must occur, otherwise string length is counted until the end of heap.
- */
-uint32_t strlen(char* s)
-{
-    uint32_t len = 0;
-    extern uint32_t heap_end;
-
-    // keep counting until end of heap is reached
-    // or reached character is a null terminator
-    while (((uint32_t) s)+len < (uint32_t) &heap_end && *(s+len) != 0)
-        len++;
-
-    // heap end?
-    if (((uint32_t) s)+len >= (uint32_t) &heap_end)
-        return 0;
-
-    return len;
-}
-
-/*
  * Send a string: automatically determine the number of characters to send
  */
 void uart_send_string(char* s)

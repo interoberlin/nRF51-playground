@@ -18,9 +18,12 @@
 // general includes
 #include <stdint.h>
 #include <stdbool.h>
+
+#include "strings.h"
 #include "heap.h"
 
 // nRF51-specific includes
+#include "cortex_m0.h"
 #include "ficr.h"
 #include "clock.h"
 #include "uart.h"
@@ -196,7 +199,7 @@
 }
 
 // CRC-related
-#define radio_crcstatus_ok                 (RADIO_CRCSTATUS == 1)
+#define RADIO_CRC_OK                       (RADIO_CRCSTATUS & 1)
 
 // for RADIO_PCNF0
 #define radio_set_length_lf(num_bits)       RADIO_PCNF0 = (RADIO_PCNF0 & 0xFFFFFFF0) |  (num_bits  & 0x0F)

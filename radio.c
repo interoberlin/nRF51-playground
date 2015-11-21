@@ -14,10 +14,10 @@
 
 #include "radio.h"
 
-#define MAX_BUF_LEN                    50
+#define RADIO_BUFFER_LENGTH            RADIO_PDU_MAX
 #define MAX_PAYLOAD_LENGTH            (RADIO_PDU_MAX - 2)
 
-static uint8_t inbuf[] __attribute__ ((aligned)) = "01234567890123456789012345678901234567890123456789";
+static uint8_t inbuf[RADIO_BUFFER_LENGTH] __attribute__ ((aligned));
 //static uint8_t *outbuf;
 
 // internal state machine
@@ -58,32 +58,41 @@ uint8_t radio_channel_to_frequency(uint8_t channel)
     }
 }
 
-void nibble2hex(char *s, uint8_t n)
-{
-    if (n < 10)
-        *s = 0x30+n;
-    else if (n < 16)
-        *s = 0x57+n;
-    else
-        *s = 0x20;
-}
-
-void char2hex(char *s, char *c)
-{
-    // higher nibble
-    nibble2hex( s,  ((*c) & 0xF0) >> 4 );
-    // lower nibble
-    nibble2hex( s+1, (*c) & 0x0F );
-}
-
 void print_packet(char *buffer, uint32_t length)
 {
-    for (uint32_t i=0; i<length; i++)
+    uint32_t i;
+
+    // temporarily disable all interrupts
+    // prevents characters to be randomly injected into ongoing uart transmission
+    DINT;
+
+    if (RADIO_EVENT_DEVMATCH)
+        uart_send("MATCH ", 6);
+    if (RADIO_EVENT_DEVMISS)
+        uart_send("MISS ", 5);
+
+    for (i=0; i<length; i++)
     {
         char s[] = "   ";
         char2hex(s, buffer++);
         uart_send(s, 3);
     }
+
+    if (RADIO_CRC_OK)
+        uart_send("OK ", 3);
+    else
+        uart_send("ERR ", 4);
+
+    for (i=0; i<3; i++)
+    {
+        char s[] = "   ";
+        char c = (RADIO_RXCRC >> (i*8)) & 0xFF;
+        char2hex(s, &c);
+        uart_send(s, 3);
+    }
+
+    // re-enable interrupts
+    EINT;
 }
 
 /**
@@ -104,7 +113,7 @@ void RADIO_Handler()
         // Reception complete
         if (status & STATUS_RX)
         {
-            print_packet(inbuf, MAX_BUF_LEN);
+            print_packet(inbuf, RADIO_BUFFER_LENGTH);
             status &= ~STATUS_RX;
         }
 
@@ -258,8 +267,8 @@ void radio_receive(uint32_t f)
     memset(inbuf, 0, sizeof(inbuf));
 
     // receive
-    RADIO_PACKETPTR = (uint32_t) inbuf;
     uart_send("<", 1);
+    RADIO_PACKETPTR = (uint32_t) inbuf;
     RADIO_TASK_RXEN = 1;
 
     // wait until DISABLED flag is raised

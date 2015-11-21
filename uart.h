@@ -12,23 +12,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
+#include "strings.h"
 #include "heap.h"
 #include "fifo.h"
-//#include "core_cmFunc.h"
-//#include "core_cmInstr.h"
-//#include "core_cm0.h"
-
-/*
- * Configuration
- */
-
-#define UART_SEND_USING_INTERRUPTS
-
-#ifdef UART_SEND_USING_INTERRUPTS
-#include "cortex_m0.h"
-#else
-#include "delay.h"
-#endif
 
 /*
  * Constants

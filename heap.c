@@ -1,4 +1,12 @@
 
+/**
+ * Dynamic memory allocation and management library
+ * for Cortex M0-based embedded systems
+ *
+ * Author:  Matthias Bock <mail@matthiasbock.net>
+ * License: GNU GPLv3
+ */
+
 #include "heap.h"
 
 //extern uint32_t heap_begin;

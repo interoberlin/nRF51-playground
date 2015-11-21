@@ -89,10 +89,10 @@ int main()
     };
 
     /* Link Layer specification Section 2.1.2, Core 4.1 page 2503 */
-    #define ADV_CHANNEL_AA          0x8E89BED6
+    #define ADVERTISING_CHANNEL_ACCESS_ADDRESS          0x8E89BED6
 
     /* Link Layer specification Section 3.1.1, Core 4.1 page 2522 */
-    #define ADV_CHANNEL_CRC         0x555555
+    #define ADVERTISING_CHANNEL_CRC         0x555555
 
     uint8_t advertising_channels[] = {37,38,39};
     uint8_t channel_index = 0;
@@ -105,7 +105,7 @@ int main()
         if (channel_index > 2)
             channel_index = 0;
         uint8_t channel = advertising_channels[channel_index];
-        radio_prepare(channel, ADV_CHANNEL_AA, ADV_CHANNEL_CRC);
+        radio_prepare(channel, ADVERTISING_CHANNEL_ACCESS_ADDRESS, ADVERTISING_CHANNEL_CRC);
         radio_send(adv_nonconn_ind);
         delay_ms(10);
     }

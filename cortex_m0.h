@@ -1,8 +1,9 @@
-/*
+
+/**
  * Cortex M0 Registers and Low-level Routines
  *
  * Author:  Matthias Bock <mail@matthiasbock.net>
- * License: GNU GPLv3 
+ * License: GNU GPLv3
  */
 
 #ifndef CORTEX_M0_H
@@ -42,5 +43,11 @@
 
 //void NVIC_SetPriority(IRQn_Type IRQn, uint32_t priority);
 //uint32_t NVIC_GetPriority(IRQn_Type IRQn);
+
+// globally disable interrupts
+#define DINT        asm("cpsid i")
+
+// re-enable interrupts
+#define EINT        asm("cpsie i")
 
 #endif
