@@ -241,7 +241,7 @@ void radio_send(uint8_t *data)
 */
     // wait until DISABLED flag is raised
     while (!RADIO_EVENT_DISABLED)
-        asm("nop");
+        asm("wfi");
     uart_send("d", 1);
 
     uart_send("\n", 1);

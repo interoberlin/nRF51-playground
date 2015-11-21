@@ -46,6 +46,43 @@ void uart_setup()
     uart_enable;
 }
 
+
+/* Link Layer specification section 2.3, Core 4.1, page 2504
+ * Link Layer specification section 2.3.1.3, Core 4.1, page 2507
+ *
+ * ADV_NONCONN_IND PDU (39 octets):
+ * +--------+--------+---------+
+ * | Header |  AdvA  | AdvData |
+ * +--------+--------+---------+
+ *  2 octets 6 octets 31 octets
+ *
+ * Header:  <PDU Type=ADV_NONCONN_IND, TxAddr=RANDOM, Length=22>
+ * AdvA:    <FF:EE:DD:CC:BB:AA>
+ * AdvData: <AD: Len=15, Type="Complete Local Name", Data="blessed device">
+ */
+uint8_t adv_nonconn_ind[] = {
+    0x42, 0x16,                 /* Header */
+    0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,     /* AdvA */
+    0x0F,                       /* AD Length */
+    0x09,                       /* AD Type */
+    /* AD Data */
+    'b', 'l', 'e', 's',
+    's', 'e', 'd', ' ',
+    'd', 'e', 'v', 'i',
+    'c', 'e'
+};
+
+/* Link Layer specification Section 2.1.2, Core 4.1 page 2503 */
+#define ADVERTISING_CHANNEL_ACCESS_ADDRESS          0x8E89BED6
+
+/* Link Layer specification Section 3.1.1, Core 4.1 page 2522 */
+#define ADVERTISING_CHANNEL_CRC         0x555555
+
+uint8_t advertising_channels[] = {37,38,39};
+uint8_t channel_index = 0;
+
+
+
 int main()
 {
     uart_setup();
@@ -55,47 +92,13 @@ int main()
      * Receiver demo:
      * Configure radio and wait for interrupts
      */
+    radio_prepare(37, ADVERTISING_CHANNEL_ACCESS_ADDRESS, ADVERTISING_CHANNEL_CRC);
     uart_send_string("Ready to receive BLE packets:\n");
     while (1)
     {
         radio_receive();
-        delay_ms(150);
+        delay_ms(50);
     }
-
-    
-    /* Link Layer specification section 2.3, Core 4.1, page 2504
-     * Link Layer specification section 2.3.1.3, Core 4.1, page 2507
-     *
-     * ADV_NONCONN_IND PDU (39 octets):
-     * +--------+--------+---------+
-     * | Header |  AdvA  | AdvData |
-     * +--------+--------+---------+
-     *  2 octets 6 octets 31 octets
-     *
-     * Header:  <PDU Type=ADV_NONCONN_IND, TxAddr=RANDOM, Length=22>
-     * AdvA:    <FF:EE:DD:CC:BB:AA>
-     * AdvData: <AD: Len=15, Type="Complete Local Name", Data="blessed device">
-     */
-    uint8_t adv_nonconn_ind[] = {
-        0x42, 0x16,                 /* Header */
-        0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,     /* AdvA */
-        0x0F,                       /* AD Length */
-        0x09,                       /* AD Type */
-        /* AD Data */
-        'b', 'l', 'e', 's',
-        's', 'e', 'd', ' ',
-        'd', 'e', 'v', 'i',
-        'c', 'e'
-    };
-
-    /* Link Layer specification Section 2.1.2, Core 4.1 page 2503 */
-    #define ADVERTISING_CHANNEL_ACCESS_ADDRESS          0x8E89BED6
-
-    /* Link Layer specification Section 3.1.1, Core 4.1 page 2522 */
-    #define ADVERTISING_CHANNEL_CRC         0x555555
-
-    uint8_t advertising_channels[] = {37,38,39};
-    uint8_t channel_index = 0;
 
     while (true)
     {
