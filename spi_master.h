@@ -7,6 +7,8 @@
  * License: GNU GPLv3
  */
 
+#define INTERRUPT_SPI 3
+
 /*
  * Base address:
  * Selects, which of the two available hardware SPI master devices to use
@@ -17,22 +19,22 @@
 /*
  * Events
  */
-#define SPI_READY    (spi_device)    (*(volatile uint32_t*) (spi_device+0x108))    // TXD byte sent and RXD byte received
+#define SPI_EVENT_READY(spi_device)  (*(volatile uint32_t*) (spi_device+0x108))    // TXD byte sent and RXD byte received
          
 /*
  * Tasks
  */                   
-#define SPI_INTEN    (spi_device)    (*(volatile uint32_t*) (spi_device+0x300))    // Enable or disable interrupt
-#define SPI_INTENSET (spi_device)    (*(volatile uint32_t*) (spi_device+0x304))    // Enable interrupt
-#define SPI_INTENCLR (spi_device)    (*(volatile uint32_t*) (spi_device+0x308))    // Disable interrupt
-#define SPI_ENABLE   (spi_device)    (*(volatile uint32_t*) (spi_device+0x500))    // Enable SPI
-#define SPI_PSELSCK  (spi_device)    (*(volatile uint32_t*) (spi_device+0x508))    // Pin select for SCK
-#define SPI_PSELMOSI (spi_device)    (*(volatile uint32_t*) (spi_device+0x50C))    // Pin select for MOSI
-#define SPI_PSELMISO (spi_device)    (*(volatile uint32_t*) (spi_device+0x510))    // Pin select for MISO
-#define SPI_RXD      (spi_device)    (*(volatile uint32_t*) (spi_device+0x518))    // RXD register
-#define SPI_TXD      (spi_device)    (*(volatile uint32_t*) (spi_device+0x51C))    // TXD register
-#define SPI_FREQUENCY(spi_device)    (*(volatile uint32_t*) (spi_device+0x524))    // SPI frequency
-#define SPI_CONFIG   (spi_device)    (*(volatile uint32_t*) (spi_device+0x554))    // Configuration register
+#define SPI_INTEN(spi_device)       (*(volatile uint32_t*) (spi_device+0x300))    // Enable or disable interrupt
+#define SPI_INTENSET(spi_device)    (*(volatile uint32_t*) (spi_device+0x304))    // Enable interrupt
+#define SPI_INTENCLR(spi_device)    (*(volatile uint32_t*) (spi_device+0x308))    // Disable interrupt
+#define SPI_ENABLE(spi_device)      (*(volatile uint32_t*) (spi_device+0x500))    // Enable SPI
+#define SPI_PSELSCK(spi_device)     (*(volatile uint32_t*) (spi_device+0x508))    // Pin select for SCK
+#define SPI_PSELMOSI(spi_device)    (*(volatile uint32_t*) (spi_device+0x50C))    // Pin select for MOSI
+#define SPI_PSELMISO(spi_device)    (*(volatile uint32_t*) (spi_device+0x510))    // Pin select for MISO
+#define SPI_RXD(spi_device)         (*(volatile uint32_t*) (spi_device+0x518))    // RXD register
+#define SPI_TXD(spi_device)         (*(volatile uint32_t*) (spi_device+0x51C))    // TXD register
+#define SPI_FREQUENCY(spi_device)   (*(volatile uint32_t*) (spi_device+0x524))    // SPI frequency
+#define SPI_CONFIG(spi_device)      (*(volatile uint32_t*) (spi_device+0x554))    // Configuration register
 
 /*
  * Applicable register values
@@ -63,20 +65,23 @@
  * Register macros
  */
 // Enable/Disable
-#define spi_enabled                     (spi_device)    (SPI_ENABLE(spi_device) & 0x07)
-#define spi_enable                      (spi_device)     SPI_ENABLE(spi_device) |= 1      // set bit
-#define spi_disable                     (spi_device)     SPI_ENABLE(spi_device) &= ~0x07  // clear bit
+#define spi_enabled(spi_device)                        (SPI_ENABLE(spi_device) & 0x07)
+#define spi_enable(spi_device)                          SPI_ENABLE(spi_device) |= 1      // set bit
+#define spi_disable(spi_device)                         SPI_ENABLE(spi_device) &= ~0x07  // clear bit
 
 // Interrupts
-#define spi_interrupt_upon_READY        (spi_device)   ((SPI_INTEN   (spi_device)) & 0x04) >> 2)
-#define spi_interrupt_upon_READY_enable (spi_device)     SPI_INTENSET(spi_device) = 0x04
-#define spi_interrupt_upon_READY_disable(spi_device)     SPI_INTENCLR(spi_device) = 0x04
+#define spi_interrupt_upon_READY(spi_device)          ((SPI_INTEN   (spi_device)) & 0x04) >> 2)
+#define spi_interrupt_upon_READY_enable(spi_device)     SPI_INTENSET(spi_device) = 0x04
+#define spi_interrupt_upon_READY_disable(spi_device)    SPI_INTENCLR(spi_device) = 0x04
 
 // Pins to use: [0..31]
-#define spi_pin_select_SCK              (spi_device,pin)    SPI_PSELSCK (spi_device) = pin 
-#define spi_pin_select_MOSI             (spi_device,pin)    SPI_PSELMOSI(spi_device) = pin
-#define spi_pin_select_MISO             (spi_device,pin)    SPI_PSELMISO(spi_device) = pin
+#define spi_pin_select(spi_device, pin_SCK, pin_MOSI, pin_MISO) \
+{ \
+    SPI_PSELSCK(spi_device)  = pin_SCK;     \
+    SPI_PSELMOSI(spi_device) = pin_MOSI;    \
+    SPI_PSELMISO(spi_device) = pin_MISO;    \
+};
 
 // Read/Write
-#define spi_read                        (spi_device, char_pointer)          *(char_pointer) = SPI_RXD(spi_device)
-#define spi_write                       (spi_device, char_pointer)      SPI_TXD(spi_device) = *(char_pointer)
+#define spi_read(spi_device, word_pointer)              *(word_pointer) = SPI_RXD(spi_device)
+#define spi_write(spi_device, word)                 SPI_TXD(spi_device) = word
