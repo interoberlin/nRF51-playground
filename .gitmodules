@@ -1,0 +1,3 @@
+[submodule "libad53x4"]
+	path = libad53x4
+	url = git@github.com:matthiasbock/libad53x4.git
