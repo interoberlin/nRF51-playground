@@ -306,7 +306,8 @@ void radio_start_receiver(uint32_t f)
 
     // reception starts, as soon as receiver is READY
     // receiver shutdown, as soon as reception ENDs
-    RADIO_SHORTS = RADIO_SHORTCUT_READY_START | RADIO_SHORTCUT_END_START;
+    RADIO_SHORTS = RADIO_SHORTCUT_READY_START
+                 | RADIO_SHORTCUT_END_START;
 
     // only invoke radio interrupt, when reception is complete
     RADIO_INTENCLR = ~0;
@@ -335,7 +336,7 @@ void radio_stop()
 {
     radio_clear_all_events;
 
-    // automaticall disable radio as soon as current task is finished
+    // automatically disable radio as soon as current task is finished
     RADIO_SHORTS |= RADIO_SHORTCUT_END_DISABLE;
 
     // wait until radio is disabled
@@ -399,10 +400,10 @@ void radio_init(void)
      * set the maximum payload length
      * and set access address size to 4 (3 bytes base + 1 byte prefix)
      */
-    //RADIO_PCNF1 = RADIO_WHITENING_ENABLE | RADIO_LSB_FIRST;
-    radio_data_whitening_enable;
-    radio_set_max_payload_length(MAX_PAYLOAD_LENGTH);
-    radio_set_access_address_size(4);
+    RADIO_PCNF1 = RADIO_WHITENING_ENABLE
+                | RADIO_LSB_FIRST
+                | RADIO_MAX_PAYLOAD_LENGTH(MAX_PAYLOAD_LENGTH)
+                | RADIO_ACCESS_ADDRESS_SIZE(4);
 
     /*
      * nRF51 Series Reference Manual v2.1, section 16.1.4, page 74
@@ -411,6 +412,8 @@ void radio_init(void)
      * Preset the address to use when receive and transmit packets (logical
      * address 0, which is assembled by base address BASE0 and prefix byte
      * PREFIX0.AP0.
+     *
+     * Set RXADDRESSES to zero for promiscious mode.
      */
     RADIO_RXADDRESSES = RADIO_RXADDR0;
     RADIO_TXADDRESS   = RADIO_TXADDR0;
@@ -422,7 +425,8 @@ void radio_init(void)
      * Configure the CRC length (3 octets), polynominal and set it to
      * ignore the access address when calculate the CRC.
      */
-    RADIO_CRCCNF  = RADIO_CRCCNF_LEN_3 | RADIO_CRCCNF_SKIPADDR;
+    RADIO_CRCCNF = RADIO_CRCCNF_LEN_3
+                 | RADIO_CRCCNF_SKIPADDR;
 
     /*
      * CRC polynomial:
@@ -446,9 +450,9 @@ void radio_init(void)
      * payload field: S0, LENGTH and S1. These fields can be used to store
      * the PDU header.
      */
-    radio_set_length_lf(8);
-    radio_set_length_s0(1);
-    radio_set_length_s1(0);
+    RADIO_PCNF0 = RADIO_LENGTH_LF(8)
+                | RADIO_LENGTH_S0(1)
+                | RADIO_LENGTH_S1(0);
 
     // Clear all shortcuts
     RADIO_SHORTS = 0;

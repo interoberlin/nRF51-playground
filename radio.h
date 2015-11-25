@@ -207,16 +207,25 @@
 #define RADIO_CRC_OK                       (RADIO_CRCSTATUS & 1)
 
 // for RADIO_PCNF0
-#define radio_set_length_lf(num_bits)       RADIO_PCNF0 = (RADIO_PCNF0 & 0xFFFFFFF0) |  (num_bits  & 0x0F)
-#define radio_set_length_s0(num_bytes)      RADIO_PCNF0 = (RADIO_PCNF0 & 0xFFFFFEFF) | ((num_bytes & 0x01) <<  8)
-#define radio_set_length_s1(num_bits)       RADIO_PCNF0 = (RADIO_PCNF0 & 0xFFF0FFFF) | ((num_bits  & 0x0F) << 16)
+#define RADIO_LENGTH_LF(num_bits)            (num_bits  & 0x0F)
+#define radio_set_length_lf(num_bits)       RADIO_PCNF0 = (RADIO_PCNF0 & 0xFFFFFFF0) | RADIO_LENGTH_LF(num_bits)
+
+#define RADIO_LENGTH_S0(num_bytes)          ((num_bytes & 0x01) <<  8)
+#define radio_set_length_s0(num_bytes)      RADIO_PCNF0 = (RADIO_PCNF0 & 0xFFFFFEFF) | RADIO_LENGTH_S0(num_bytes)
+
+#define RADIO_LENGTH_S1(num_bits)           ((num_bits  & 0x0F) << 16)
+#define radio_set_length_s1(num_bits)       RADIO_PCNF0 = (RADIO_PCNF0 & 0xFFF0FFFF) | RADIO_LENGTH_S1(num_bits)
 
 // for RADIO_PCNF1
 #define radio_data_whitening_enable         RADIO_PCNF1 |=  (1 << 25) // set bit
 #define radio_data_whitening_disable        RADIO_PCNF1 &= ~(1 << 25) // clear bit 
+
+#define RADIO_MAX_PAYLOAD_LENGTH(len)      (len & 0xFF)
 #define radio_get_max_payload_length       (RADIO_PCNF1 & 0x000000FF)
-#define radio_set_max_payload_length(len)   RADIO_PCNF1  = (RADIO_PCNF1 & 0xFFFFFF00) | (len & 0xFF)
-#define radio_set_access_address_size(size) RADIO_PCNF1  = (RADIO_PCNF1 & 0xFFF8FFFF) | (((size-1) & 0x07) << 16)
+#define radio_set_max_payload_length(len)   RADIO_PCNF1  = (RADIO_PCNF1 & 0xFFFFFF00) | RADIO_MAX_PAYLOAD_LENGTH(len)
+
+#define RADIO_ACCESS_ADDRESS_SIZE(size)     (((size-1) & 0x07) << 16)
+#define radio_set_access_address_size(size) RADIO_PCNF1  = (RADIO_PCNF1 & 0xFFF8FFFF) | RADIO_ACCESS_ADDRESS_SIZE(size)
 
 // for RADIO_BASEx
 #define radio_set_address_base(n, val)      if (n == 0) \
