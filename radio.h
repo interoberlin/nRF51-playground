@@ -179,6 +179,11 @@
 #define RADIO_STATE_TX                      11
 #define RADIO_STATE_TXDISABLE               12
 
+// for RADIO_PCNF1
+#define RADIO_WHITENING_ENABLE             (1 << 25)
+#define RADIO_WHITENING_DISABLE             0
+#define RADIO_MSB_FIRST                    (1 << 24)
+#define RADIO_LSB_FIRST                     0
 
 /*
  * Register macros
@@ -211,7 +216,7 @@
 #define radio_data_whitening_disable        RADIO_PCNF1 &= ~(1 << 25) // clear bit 
 #define radio_get_max_payload_length       (RADIO_PCNF1 & 0x000000FF)
 #define radio_set_max_payload_length(len)   RADIO_PCNF1  = (RADIO_PCNF1 & 0xFFFFFF00) | (len & 0xFF)
-#define radio_set_access_address_size(size) RADIO_PCNF1  = (RADIO_PCNF1 & 0xFFF8FFFF) | ((size & 0x07) << 16)
+#define radio_set_access_address_size(size) RADIO_PCNF1  = (RADIO_PCNF1 & 0xFFF8FFFF) | (((size-1) & 0x07) << 16)
 
 // for RADIO_BASEx
 #define radio_set_address_base(n, val)      if (n == 0) \
@@ -254,7 +259,7 @@ void radio_init();
 void radio_set_callbacks(radio_receive_callback_t recv_callback, radio_send_callback_t send_callback);
 bool radio_prepare(uint8_t ch, uint32_t addr, uint32_t crcinit);
 void radio_send(uint8_t *data);
-void radio_receive();
+void radio_start_receiver();
 void radio_stop();
 
 #endif
