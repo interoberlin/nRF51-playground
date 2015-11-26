@@ -47,7 +47,8 @@ void uart_setup()
 }
 
 
-/* Link Layer specification section 2.3, Core 4.1, page 2504
+/*
+ * Link Layer specification section 2.3, Core 4.1, page 2504
  * Link Layer specification section 2.3.1.3, Core 4.1, page 2507
  *
  * ADV_NONCONN_IND PDU (39 octets):
@@ -94,10 +95,10 @@ int main()
      */
     radio_prepare(37, ADVERTISING_CHANNEL_ACCESS_ADDRESS, ADVERTISING_CHANNEL_CRC);
     uart_send_string("Ready to receive BLE packets:\n");
-    while (1)
+    radio_start_receiver();
+    while (true)
     {
-        radio_receive();
-        delay_ms(50);
+        asm("wfi");
     }
 
     while (true)

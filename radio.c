@@ -33,31 +33,39 @@ static radio_send_callback_t send_callback;
 uint8_t radio_channel_to_frequency(uint8_t channel)
 {
     /*
-     * nRF51 Series Reference Manual v2.1, section 16.2.19, page 91
      * Link Layer specification section 1.4.1, Core 4.1, page 2502
+     * nRF51 Series Reference Manual v2.1, section 16.2.19, page 91
      *
      * The nRF51822 is configured using the frequency offset from 2400 MHz:
      * On air frequency = 2400 MHz + RADIO_FREQUENCY MHz
      */
     switch (channel)
     {
-        // advertising channels(?)
+        // advertising channels
         case 37:
-            return 2;
+            return 2;   // 2402 MHz
         case 38:
-            return 26;
+            return 26;  // 2426 MHz
         case 39:
-            return 80;
-        // data channels(?)
+            return 80;  // 2480 MHz
+        // data channels
         default:
-            if (channel > 39)
-                return -1;
+            // 0-10
             if (channel < 11)
-                return 4 + (2 * channel);
-            return 6 + (2 * channel);
+                return 4 + (channel*2);
+            // 11-36
+            if (channel < 37)
+                return 6 + (channel*2);
     }
+
+    // invalid channel, return first advertising channel
+    return 2;
 }
 
+/**
+ * For debugging purposes:
+ * Print out a hex dump of the received packet via UART
+ */
 void print_packet(char *buffer, uint32_t length)
 {
     uint32_t i;
@@ -66,23 +74,45 @@ void print_packet(char *buffer, uint32_t length)
     // prevents characters to be randomly injected into ongoing uart transmission
     DINT;
 
-    if (RADIO_EVENT_DEVMATCH)
-        uart_send("MATCH ", 6);
-    if (RADIO_EVENT_DEVMISS)
-        uart_send("MISS ", 5);
-
-    for (i=0; i<length; i++)
+    // header
+    for (i=0; i<2; i++)
     {
         char s[] = "   ";
         char2hex(s, buffer++);
         uart_send(s, 3);
     }
 
-    if (RADIO_CRC_OK)
-        uart_send("OK ", 3);
-    else
-        uart_send("ERR ", 4);
+    uart_send("| ", 2);
 
+    // access address
+    for (i=2; i<8; i++)
+    {
+        char s[] = "   ";
+        char2hex(s, buffer++);
+        uart_send(s, 3);
+    }
+
+    uart_send("| ", 2);
+
+    // device address match?
+    if (RADIO_EVENT_DEVMATCH)
+        uart_send("MATCH ", 8);
+    if (RADIO_EVENT_DEVMISS)
+        uart_send("MISS ", 7);
+
+    uart_send("| ", 2);
+
+    // packet bytes
+    for (i=8; i<length; i++)
+    {
+        char s[] = "   ";
+        char2hex(s, buffer++);
+        uart_send(s, 3);
+    }
+
+    uart_send("| ", 2);
+
+    // CRC
     for (i=0; i<3; i++)
     {
         char s[] = "   ";
@@ -90,6 +120,16 @@ void print_packet(char *buffer, uint32_t length)
         char2hex(s, &c);
         uart_send(s, 3);
     }
+
+    uart_send("| ", 2);
+
+    // CRC ok?
+    if (RADIO_CRC_OK)
+        uart_send("OK", 2);
+    else
+        uart_send("ERROR", 5);
+
+    uart_send("\n", 1);
 
     // re-enable interrupts
     EINT;
@@ -113,8 +153,9 @@ void RADIO_Handler()
         // Reception complete
         if (status & STATUS_RX)
         {
-            print_packet(inbuf, RADIO_BUFFER_LENGTH);
-            status &= ~STATUS_RX;
+            if (RADIO_CRC_OK)
+                print_packet((char*) inbuf, RADIO_BUFFER_LENGTH);
+            //status &= ~STATUS_RX;
         }
 
         // clear
@@ -178,18 +219,25 @@ bool radio_prepare(uint8_t channel, uint32_t addr, uint32_t crcinit)
         return false;
     }
 
-    uint8_t frequency = radio_channel_to_frequency(channel);
+    /*
+     * Data whitening initial value = Radio channel index
+     * Polynomial (hardwired into SoC): x^7 + x^4 + 1
+     *
+     * Bluetooth specification 4.1,
+     * Chapter 3.2, page 2523
+     */
+    RADIO_DATAWHITEIV = channel;
 
-    RADIO_DATAWHITEIV = channel & 0x3F;
+    RADIO_CRCINIT = 0x555555;
+
+    uint8_t frequency = radio_channel_to_frequency(channel);
     RADIO_FREQUENCY = frequency;
 
     // set lower 3 bytes of address as base address
-    radio_set_address_base(0, (addr << 8) & 0xFFFFFF00);
+    radio_set_address_base(0, addr << 8);
 
     // set the highest byte of address as address prefix
-    radio_set_address_prefix(0, (addr >> 24) & 0xFF);
-
-    RADIO_CRCINIT = crcinit;
+    radio_set_address_prefix(0, addr >> 24);
 
     uart_send_string("Radio prepared.\n");
 
@@ -214,9 +262,9 @@ void radio_send(uint8_t *data)
     RADIO_PACKETPTR = (uint32_t) data;
     RADIO_TASK_TXEN = 1;
 
+/*
     uart_send(">", 1);
 
-/*
     // wait until READY flag is raised
     while (!RADIO_EVENT_READY)
         asm("nop");
@@ -238,16 +286,17 @@ void radio_send(uint8_t *data)
     while (!RADIO_EVENT_END)
         asm("nop");
     uart_send("e", 1);
-*/
+
     // wait until DISABLED flag is raised
     while (!RADIO_EVENT_DISABLED)
         asm("wfi");
     uart_send("d", 1);
 
     uart_send("\n", 1);
+*/
 }
 
-void radio_receive(uint32_t f)
+void radio_start_receiver(uint32_t f)
 {
     // set RX status flag
     status |= STATUS_RX;
@@ -257,7 +306,8 @@ void radio_receive(uint32_t f)
 
     // reception starts, as soon as receiver is READY
     // receiver shutdown, as soon as reception ENDs
-    RADIO_SHORTS = RADIO_SHORTCUT_READY_START | RADIO_SHORTCUT_END_DISABLE;
+    RADIO_SHORTS = RADIO_SHORTCUT_READY_START
+                 | RADIO_SHORTCUT_END_START;
 
     // only invoke radio interrupt, when reception is complete
     RADIO_INTENCLR = ~0;
@@ -267,9 +317,11 @@ void radio_receive(uint32_t f)
     memset(inbuf, 0, sizeof(inbuf));
 
     // receive
-    uart_send("<", 1);
     RADIO_PACKETPTR = (uint32_t) inbuf;
     RADIO_TASK_RXEN = 1;
+
+/*
+    uart_send("<", 1);
 
     // wait until DISABLED flag is raised
     while (!RADIO_EVENT_DISABLED)
@@ -277,13 +329,14 @@ void radio_receive(uint32_t f)
     uart_send("d", 1);
 
     uart_send("\n", 1);
+*/
 }
 
 void radio_stop()
 {
     radio_clear_all_events;
 
-    // automaticall disable radio as soon as current task is finished
+    // automatically disable radio as soon as current task is finished
     RADIO_SHORTS |= RADIO_SHORTCUT_END_DISABLE;
 
     // wait until radio is disabled
@@ -302,12 +355,12 @@ void radio_init(void)
     // wait for high frequency clock to get started
     if (!CLOCK_EVENT_HFCLKSTARTED)
     {
-        uart_send_string("High frequency clock has not been started. Starting...\n");
+        uart_send_string("Starting high frequency clock... ");
         CLOCK_TASK_HFCLKSTART = 1;
         while (!CLOCK_EVENT_HFCLKSTARTED)
             asm("nop");
     }
-    uart_send_string("High frequency clock started.\n");
+    uart_send_string("[started]\n");
 
     /*
      * nRF51 Series Reference Manual v2.1, section 6.1.1, page 18
@@ -328,26 +381,29 @@ void radio_init(void)
         uart_send_string("Factory overrides applied.\n");
     }
 
-    RADIO_MODE = RADIO_MODE_BLE_1MBIT;
     uart_send_string("Configuring radio for 1 MBit Bluetooth Low Energy...\n");
+    RADIO_MODE = RADIO_MODE_BLE_1MBIT;
 
     /*
      * Link Layer specification section 4.1, Core 4.1, page 2524
      * nRF51 Series Reference Manual v2.1, section 16.2.7, page 92
      *
-     * Set the inter frame space (T_IFS) to 150 us.
+     * Set the inter frame space to 150 us
      */
     RADIO_TIFS = 150;
 
     /*
      *  nRF51 Series Reference Manual v2.1, section 16.2.9, page 88
      *
-     * Enable data whitening, set the maximum payload length and set the
-     * access address size (3 + 1 octets).
+     * Enable data whitening,
+     * set air endianness to little endian i.e. LSB first,
+     * set the maximum payload length
+     * and set access address size to 4 (3 bytes base + 1 byte prefix)
      */
-    radio_data_whitening_enable;
-    radio_set_max_payload_length(MAX_PAYLOAD_LENGTH);
-    radio_set_access_address_size(3);
+    RADIO_PCNF1 = RADIO_WHITENING_ENABLE
+                | RADIO_LSB_FIRST
+                | RADIO_MAX_PAYLOAD_LENGTH(MAX_PAYLOAD_LENGTH)
+                | RADIO_ACCESS_ADDRESS_SIZE(4);
 
     /*
      * nRF51 Series Reference Manual v2.1, section 16.1.4, page 74
@@ -356,8 +412,10 @@ void radio_init(void)
      * Preset the address to use when receive and transmit packets (logical
      * address 0, which is assembled by base address BASE0 and prefix byte
      * PREFIX0.AP0.
+     *
+     * Set RXADDRESSES to zero for promiscious mode.
      */
-    RADIO_RXADDRESSES = RADIO_RXADDR1;
+    RADIO_RXADDRESSES = RADIO_RXADDR0;
     RADIO_TXADDRESS   = RADIO_TXADDR0;
 
     /*
@@ -367,7 +425,19 @@ void radio_init(void)
      * Configure the CRC length (3 octets), polynominal and set it to
      * ignore the access address when calculate the CRC.
      */
-    RADIO_CRCCNF  = RADIO_CRCCNF_LEN_3 | RADIO_CRCCNF_SKIPADDR; 
+    RADIO_CRCCNF = RADIO_CRCCNF_LEN_3
+                 | RADIO_CRCCNF_SKIPADDR;
+
+    /*
+     * CRC polynomial:
+     * Bluetooth specification 4.1
+     * Chapter 3: Bit stream processing, page 2522
+     *
+     * x^24 + x^10 + x^9 + x^6 + x^4 + x^3 + x + 1
+     *   (1)000 00000 00000 11001 01101 1
+     * = (1)0000 0000 0000 0110 0101 1011 =
+     * = 100065B
+     */
     RADIO_CRCPOLY = 0x100065B;
 
     /*
@@ -380,9 +450,12 @@ void radio_init(void)
      * payload field: S0, LENGTH and S1. These fields can be used to store
      * the PDU header.
      */
-    radio_set_length_lf(8);
-    radio_set_length_s0(1);
-    radio_set_length_s1(0);
+    RADIO_PCNF0 = RADIO_LENGTH_LF(8)
+                | RADIO_LENGTH_S0(1)
+                | RADIO_LENGTH_S1(0);
+
+    // Clear all shortcuts
+    RADIO_SHORTS = 0;
 
     // Disable all radio interrupts
     RADIO_INTENCLR = ~0;
@@ -392,7 +465,7 @@ void radio_init(void)
 
     RADIO_TXPOWER = RADIO_TXPOWER_0DBM;
 
-    // to avoid hard faults due to invalid pointer
+    // to avoid faulty behaviour due to invalid pointer
     RADIO_PACKETPTR = (uint32_t) inbuf;
 
     status |= STATUS_INITIALIZED;
