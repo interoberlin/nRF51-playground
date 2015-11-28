@@ -35,7 +35,7 @@ void uart_setup()
     uart_select_pin_as_TXD(PIN_UART_TXD);
     uart_select_pin_as_RTS(UART_PIN_DISABLE);
     uart_select_pin_as_CTS(UART_PIN_DISABLE);
-    uart_set_baud(baud_115200);
+    uart_set_baud(baud_57600);
     uart_set_parity_exclude;
     uart_flow_control_enable;
 

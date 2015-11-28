@@ -74,6 +74,9 @@ void print_packet(char *buffer, uint32_t length)
     // prevents characters to be randomly injected into ongoing uart transmission
     DINT;
 
+    // access address
+    uart_send("00 00 00 00 ", 12);
+
     // header
     for (i=0; i<2; i++)
     {
@@ -84,7 +87,7 @@ void print_packet(char *buffer, uint32_t length)
 
     uart_send("| ", 2);
 
-    // access address
+    // advertising address
     for (i=2; i<8; i++)
     {
         char s[] = "   ";
