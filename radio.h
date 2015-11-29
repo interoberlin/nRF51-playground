@@ -4,10 +4,10 @@
  * for the Nordic Semiconductor nRF51 series
  *
  * Authors:
+ *      Matthias Bock <mail@matthiasbock.net>
  *      Paulo B. de Oliveira Filho <pauloborgesfilho@gmail.com>
  *      Claudio Takahasi <claudio.takahasi@gmail.com>
  *      João Paulo Rechi Vita <jprvita@gmail.com>
- *      Matthias Bock <mail@matthiasbock.net>
  *
  * License: GNU GPLv3
  */
@@ -23,7 +23,8 @@
 #include "heap.h"
 
 // nRF51-specific includes
-#include "cortex_m0.h"
+//#include "cortex_m0.h"
+#include "nrf_gpio.h"
 #include "ficr.h"
 #include "clock.h"
 #include "uart.h"

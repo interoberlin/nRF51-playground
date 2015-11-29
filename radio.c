@@ -4,10 +4,10 @@
  * for the Nordic Semiconductor nRF51 series
  *
  * Authors:
+ *      Matthias Bock <mail@matthiasbock.net>
  *      Paulo B. de Oliveira Filho <pauloborgesfilho@gmail.com>
  *      Claudio Takahasi <claudio.takahasi@gmail.com>
  *      João Paulo Rechi Vita <jprvita@gmail.com>
- *      Matthias Bock <mail@matthiasbock.net>
  *
  * License: GNU GPLv3
  */
@@ -69,6 +69,8 @@ uint8_t radio_channel_to_frequency(uint8_t channel)
 void print_packet(char *buffer, uint32_t length)
 {
     uint32_t i;
+
+    nrf_gpio_pin_set(21);
 
     // temporarily disable all interrupts
     // prevents characters to be randomly injected into ongoing uart transmission
@@ -136,6 +138,8 @@ void print_packet(char *buffer, uint32_t length)
 
     // re-enable interrupts
     EINT;
+
+    nrf_gpio_pin_clear(21);
 }
 
 /**
@@ -159,47 +163,14 @@ void RADIO_Handler()
             if (RADIO_CRC_OK)
                 print_packet((char*) inbuf, RADIO_BUFFER_LENGTH);
             //status &= ~STATUS_RX;
+
+            // fill buffer with zeroes
+            memset(inbuf, 0, sizeof(inbuf));
         }
 
         // clear
         RADIO_EVENT_END = 0;
     }
-
-    //uart_send("i",1);
-/*
-    active = false;
-    old_status = status;
-    status = STATUS_INITIALIZED;
-
-    if (old_status & STATUS_RX)
-    {
-        if (flags & RADIO_FLAGS_TX_NEXT)
-        {
-            flags &= ~RADIO_FLAGS_TX_NEXT;
-            status |= STATUS_TX;
-            active = true;
-            RADIO_PACKETPTR = (uint32_t) outbuf;
-            RADIO_SHORTS &= ~RADIO_SHORTCUT_DISABLED_TXEN;
-        }
-
-        if (receive_callback)
-            receive_callback(inbuf, RADIO_CRCSTATUS, active);
-    }
-    else if (old_status & STATUS_TX)
-    {
-        if (flags & RADIO_FLAGS_RX_NEXT)
-        {
-            flags &= ~RADIO_FLAGS_RX_NEXT;
-            status |= STATUS_RX;
-            active = true;
-            RADIO_PACKETPTR = (uint32_t) inbuf;
-            RADIO_SHORTS &= ~RADIO_SHORTCUT_DISABLED_RXEN;
-        }
-
-        if (send_callback)
-            send_callback(active);
-    }
-    */
 }
 
 void radio_set_callbacks(radio_receive_callback_t rcb, radio_send_callback_t scb)
@@ -472,6 +443,8 @@ void radio_init(void)
     RADIO_PACKETPTR = (uint32_t) inbuf;
 
     status |= STATUS_INITIALIZED;
+
+    nrf_gpio_pin_dir_set(21, NRF_GPIO_PIN_DIR_OUTPUT);
 
     uart_send_string("Radio initialized.\n");
 }
