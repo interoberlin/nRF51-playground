@@ -63,6 +63,7 @@
 #define RADIO_INTENSET          (*(volatile uint32_t*) (RADIO_BASE+0x304))   // Enable interrupt
 #define RADIO_INTENCLR          (*(volatile uint32_t*) (RADIO_BASE+0x308))   // Disable interrupt
 #define RADIO_CRCSTATUS         (*(volatile uint32_t*) (RADIO_BASE+0x400))   // CRC status
+#define RADIO_CD                (*(volatile uint32_t*) (RADIO_BASE+0x404))   // Carrier detect
 #define RADIO_RXMATCH           (*(volatile uint32_t*) (RADIO_BASE+0x408))   // Received address
 #define RADIO_RXCRC             (*(volatile uint32_t*) (RADIO_BASE+0x40C))   // CRC field of previously received packet
 #define RADIO_DAI               (*(volatile uint32_t*) (RADIO_BASE+0x410))   // Device address match index
