@@ -35,7 +35,7 @@ void uart_setup()
     uart_select_pin_as_TXD(PIN_UART_TXD);
     uart_select_pin_as_RTS(UART_PIN_DISABLE);
     uart_select_pin_as_CTS(UART_PIN_DISABLE);
-    uart_set_baud(baud_57600);
+    uart_set_baud(baud_115200);
     uart_set_parity_exclude;
     uart_flow_control_enable;
 
@@ -105,7 +105,7 @@ int main()
     {
 //        https://github.com/interoberlin/nrf51-playground/issues/8:
 //        channel_index = (channel_index + 1) % 3;
-        channel_index = (channel_index + 1);
+        channel_index++;
         if (channel_index > 2)
             channel_index = 0;
         uint8_t channel = advertising_channels[channel_index];

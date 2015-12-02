@@ -15,7 +15,7 @@
 
 #include "delay.h"
 
-#define FIFO_SIZE 512
+#define FIFO_SIZE 1024
 
 /*
  * A memory area of FIFO_SIZE bytes

@@ -67,6 +67,11 @@
 #define RADIO_RXMATCH           (*(volatile uint32_t*) (RADIO_BASE+0x408))   // Received address
 #define RADIO_RXCRC             (*(volatile uint32_t*) (RADIO_BASE+0x40C))   // CRC field of previously received packet
 #define RADIO_DAI               (*(volatile uint32_t*) (RADIO_BASE+0x410))   // Device address match index
+// Undocumented non-zero registers:
+// +0x418
+// +0x420
+// +0x428
+// +0x42C: Strength of received signal / carrier
 #define RADIO_PACKETPTR         (*(volatile uint32_t*) (RADIO_BASE+0x504))   // Packet pointer
 #define RADIO_FREQUENCY         (*(volatile uint32_t*) (RADIO_BASE+0x508))   // Frequency
 #define RADIO_TXPOWER           (*(volatile uint32_t*) (RADIO_BASE+0x50C))   // Output power
@@ -222,7 +227,7 @@
 #define radio_data_whitening_enable         RADIO_PCNF1 |=  (1 << 25) // set bit
 #define radio_data_whitening_disable        RADIO_PCNF1 &= ~(1 << 25) // clear bit 
 
-#define RADIO_MAX_PAYLOAD_LENGTH(len)      (len & 0xFF)
+#define RADIO_MAX_PAYLOAD_LENGTH(len)      ((len) & 0xFF)
 #define radio_get_max_payload_length       (RADIO_PCNF1 & 0x000000FF)
 #define radio_set_max_payload_length(len)   RADIO_PCNF1  = (RADIO_PCNF1 & 0xFFFFFF00) | RADIO_MAX_PAYLOAD_LENGTH(len)
 

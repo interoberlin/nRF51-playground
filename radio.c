@@ -143,12 +143,39 @@ void print_packet(char *buffer, uint32_t length)
 }
 
 /**
+ * Print out a memory dump
+ * of all radio registers
+ */
+void print_memory()
+{
+    char s[] = "         ";
+    for (uint32_t address = RADIO_BASE+0x500; address < RADIO_BASE+0x540; address += 4)
+    {
+        uint32_t value = *((volatile uint32_t*) address);
+        char a = (value & 0xFF000000) >> 24;
+        char b = (value & 0x00FF0000) >> 16;
+        char c = (value & 0x0000FF00) >> 8;
+        char d = (value & 0x000000FF);
+        char2hex( &s[0], &a );
+        char2hex( &s[2], &b );
+        char2hex( &s[4], &c );
+        char2hex( &s[6], &d );
+        uart_send(s, 9);
+        if (address % 64 == 0)
+            uart_send("\n", 1);
+    }
+    uart_send("\n", 1);
+}
+
+/**
  * Radio interrupt handler
  *
  * Included in nrf51_startup.c
  */
 void RADIO_Handler()
 {
+    uart_send("i", 1);
+
     if (RADIO_EVENT_END)
     {
         // Transmission complete
@@ -161,7 +188,10 @@ void RADIO_Handler()
         if (status & STATUS_RX)
         {
             if (RADIO_CRC_OK)
-                print_packet((char*) inbuf, RADIO_BUFFER_LENGTH);
+            {
+                //print_packet((char*) inbuf, RADIO_BUFFER_LENGTH);
+                print_memory();
+            }
             //status &= ~STATUS_RX;
 
             // fill buffer with zeroes
@@ -213,7 +243,7 @@ bool radio_prepare(uint8_t channel, uint32_t addr, uint32_t crcinit)
     // set the highest byte of address as address prefix
     radio_set_address_prefix(0, addr >> 24);
 
-    uart_send_string("Radio prepared.\n");
+    //uart_send_string("Radio prepared.\n");
 
     return true;
 }
@@ -223,7 +253,8 @@ void radio_send(uint8_t *data)
     status |= STATUS_TX;
 
     // make sure, transmission is started after ramp-up is complete
-    RADIO_SHORTS = RADIO_SHORTCUT_READY_START | RADIO_SHORTCUT_END_DISABLE;
+    RADIO_SHORTS = RADIO_SHORTCUT_READY_START
+                 | RADIO_SHORTCUT_END_DISABLE;
 
     // only invoke radio interrupt, when an END event happens
     RADIO_INTENCLR = ~0;
@@ -236,14 +267,13 @@ void radio_send(uint8_t *data)
     RADIO_PACKETPTR = (uint32_t) data;
     RADIO_TASK_TXEN = 1;
 
-/*
     uart_send(">", 1);
 
     // wait until READY flag is raised
     while (!RADIO_EVENT_READY)
         asm("nop");
     uart_send("r", 1);
-
+/*
     // wait until ADDRESS flag is raised
     while (!RADIO_EVENT_ADDRESS)
         asm("nop");
@@ -260,14 +290,13 @@ void radio_send(uint8_t *data)
     while (!RADIO_EVENT_END)
         asm("nop");
     uart_send("e", 1);
-
+*/
     // wait until DISABLED flag is raised
     while (!RADIO_EVENT_DISABLED)
         asm("wfi");
     uart_send("d", 1);
 
     uart_send("\n", 1);
-*/
 }
 
 void radio_start_receiver(uint32_t f)
@@ -293,17 +322,6 @@ void radio_start_receiver(uint32_t f)
     // receive
     RADIO_PACKETPTR = (uint32_t) inbuf;
     RADIO_TASK_RXEN = 1;
-
-/*
-    uart_send("<", 1);
-
-    // wait until DISABLED flag is raised
-    while (!RADIO_EVENT_DISABLED)
-        asm("nop");
-    uart_send("d", 1);
-
-    uart_send("\n", 1);
-*/
 }
 
 void radio_stop()
@@ -326,6 +344,12 @@ void radio_stop()
 
 void radio_init(void)
 {
+    // configure 16MHz crystal frequency
+    CLOCK_XTALFREQ = 0xFF;
+
+    // use crystal oscillator (more precise, than RC oscillator)
+    CLOCK_HFCLKSTAT = 1;
+
     // wait for high frequency clock to get started
     if (!CLOCK_EVENT_HFCLKSTARTED)
     {
@@ -386,8 +410,6 @@ void radio_init(void)
      * Preset the address to use when receive and transmit packets (logical
      * address 0, which is assembled by base address BASE0 and prefix byte
      * PREFIX0.AP0.
-     *
-     * Set RXADDRESSES to zero for promiscious mode.
      */
     RADIO_RXADDRESSES = RADIO_RXADDR0;
     RADIO_TXADDRESS   = RADIO_TXADDR0;
