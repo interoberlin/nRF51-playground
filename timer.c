@@ -1,261 +1,270 @@
 /**
- *  The MIT License (MIT)
+ * TIMER library
+ * for the Nordic Semiconductor nRF51 series
  *
- *  Copyright (c) 2013 Paulo B. de Oliveira Filho <pauloborgesfilho@gmail.com>
- *  Copyright (c) 2013 Claudio Takahasi <claudio.takahasi@gmail.com>
- *  Copyright (c) 2013 João Paulo Rechi Vita <jprvita@gmail.com>
+ * Authors:
+ *      Matthias Bock <mail@matthiasbock.net>
+ *      Paulo B. de Oliveira Filho <pauloborgesfilho@gmail.com>
+ *      Claudio Takahasi <claudio.takahasi@gmail.com>
+ *      João Paulo Rechi Vita <jprvita@gmail.com>
  *
- *  Permission is hereby granted, free of charge, to any person obtaining a copy
- *  of this software and associated documentation files (the "Software"), to deal
- *  in the Software without restriction, including without limitation the rights
- *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *  copies of the Software, and to permit persons to whom the Software is
- *  furnished to do so, subject to the following conditions:
+ * License: GNU GPLv3
  *
- *  The above copyright notice and this permission notice shall be included in all
- *  copies or substantial portions of the Software.
- *
- *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- *  SOFTWARE.
+ * This library only uses TIMER0.
+ * (There are two more available on the nRF51822.)
+ * Each counter has four counter registers (TIMER_CC[0-3]),
+ * being counted up or down simultaneously.
+ * Here we count down (see function timer_init)
+ * with a frequency of 1 MHz.
  */
 
-#include <string.h>
-#include <stdbool.h>
-
-#include "nrf51.h"
-#include "nrf51_bitfields.h"
-
-#include "errcodes.h"
-#include "log.h"
-
 #include "timer.h"
-#include "nrf51822.h"
 
-#define HFCLK				16000000UL
-#define TIMER_PRESCALER			4		/* 1 MHz */
-#define MAX_TIMERS			3
+// The high frequency clock runs at 16 MHz.
+#define HFCLK               16000000UL
 
-/* The implementation of repeated timers inserts a constant drift in every
+// timer clock = 16 MHz / (2^TIMER_PRESCALER)
+// set timer clock to 1 MHz:
+#define TIMER_PRESCALE      4
+
+/*
+ * The implementation of repeated timers inserts a constant drift in every
  * repetition because of the interruption context switch until initialize
  * TIMER0_IRQHandler(). The define below calculates the number of ticks until
- * the exception handler is executed. */
-#define DRIFT_FIX			(1UL << (5 - TIMER_PRESCALER))
+ * the exception handler is executed.
+ */
+#define DRIFT_FIX           (1UL << (5 - TIMER_PRESCALE))
 
-#define ROUNDED_DIV(A, B)		(((A) + ((B) / 2)) / (B))
-#define POW2(e)				ROUNDED_DIV(2 << e, 2)
-#define BIT(n)				(1 << n)
+#define ROUNDED_DIV(A, B)   (((A) + ((B) / 2)) / (B))
+#define POW2(e)             ROUNDED_DIV(2 << e, 2)
+#define BIT(n)              (1 << n)
 
-struct timer {
-	uint32_t ticks;
-	timer_cb_t cb;
-	uint8_t enabled:1;
-	uint8_t active:1;
-	uint8_t type:1;
-};
+#define COUNTERS_PER_TIMER  4
 
-static struct timer timers[MAX_TIMERS];
-static uint8_t active = 0;
+typedef struct
+{
+    uint32_t            ticks;
+    timer_callback_t    callback;
+    uint8_t             enabled:1;
+    uint8_t             active:1;
+    uint8_t             type:1;
+} cc_t;
+
+static cc_t timer_cc[COUNTERS_PER_TIMER];
+static uint8_t ccs_active = 0;
 
 static __inline uint32_t us2ticks(uint64_t us)
 {
-	return ROUNDED_DIV(us * HFCLK, TIMER_SECONDS(1)
-						* POW2(TIMER_PRESCALER));
+    return ROUNDED_DIV(us * HFCLK, TIMER_SECONDS(1) * POW2(TIMER_PRESCALE));
 }
 
 static __inline uint32_t ticks2us(uint64_t ticks)
 {
-	return ROUNDED_DIV(ticks * TIMER_SECONDS(1) * POW2(TIMER_PRESCALER),
-									HFCLK);
+    return ROUNDED_DIV(ticks * TIMER_SECONDS(1) * POW2(TIMER_PRESCALE), HFCLK);
 }
 
-static __inline void get_clr_set_masks(uint8_t id, uint32_t *clr, uint32_t *set)
+static __inline uint32_t get_curr_ticks()
 {
-	*clr = TIMER_INTENCLR_COMPARE0_Msk << id;
-	*set = TIMER_INTENSET_COMPARE0_Msk << id;
+    // save current value of CC[3]
+    uint32_t cc3 = TIMER_CC(TIMER0)[3];
+
+    // capture current tick count to CC[3]
+    TIMER_TASK_CAPTURE(TIMER0)[3] = 1;
+
+    // read tick count from CC[3]
+    uint32_t ticks = TIMER_CC(TIMER0)[3];
+
+    // write previous value back to CC[3]
+    TIMER_CC(TIMER0)[3] = cc3;
+
+    return ticks;
 }
 
-static __inline uint32_t get_curr_ticks(void)
+static __inline void set_timer(uint8_t id, uint32_t ticks)
 {
-	uint32_t ticks;
-	uint32_t cc3;
+    // program countdown
+    TIMER_CC(TIMER0)[id] = ticks;
 
-	cc3 = NRF_TIMER0->CC[3];
-	NRF_TIMER0->TASKS_CAPTURE[3] = 1UL;
-	ticks = NRF_TIMER0->CC[3];
-	NRF_TIMER0->CC[3] = cc3;
-
-	return ticks;
+    // enable this compare number's interrupt
+    timer_interrupt_upon_compare_enable(TIMER0, id);
 }
 
-static __inline void update_cc(uint8_t id, uint32_t ticks)
+void TIMER0_Handler()
 {
-	uint32_t clr_mask = 0;
-	uint32_t set_mask = 0;
+    uint32_t curr = get_curr_ticks();
+    uint8_t id_mask = 0;
+    uint8_t id;
 
-	get_clr_set_masks(id, &clr_mask, &set_mask);
+    for (id = 0; id < COUNTERS_PER_TIMER; id++)
+    {
+        if (TIMER_EVENT_COMPARE(TIMER0)[id])
+        {
+            // clear event
+            TIMER_EVENT_COMPARE(TIMER0)[id] = 0UL;
 
-	NRF_TIMER0->CC[id] = ticks;
-	NRF_TIMER0->INTENSET = set_mask;
+            if (timer_cc[id].active)
+                id_mask |= BIT(id);
+        }
+    }
+
+    for (id = 0; id < COUNTERS_PER_TIMER; id++)
+    {
+        if (id_mask & BIT(id))
+        {
+            if (timer_cc[id].type == TIMER_REPEATED)
+            {
+                set_timer(id, curr + timer_cc[id].ticks - DRIFT_FIX);
+            }
+            else if (timer_cc[id].type == TIMER_SINGLESHOT)
+            {
+                timer_cc[id].active = 0;
+                ccs_active--;
+
+                // not counter is running any more?
+                if (ccs_active == 0)
+                {
+                    //  disable timer
+                    TIMER_TASK_STOP(TIMER0)  = 1;
+                    TIMER_TASK_CLEAR(TIMER0) = 1;
+                }
+            }
+
+            timer_cc[id].callback();
+        }
+    }
 }
 
-void TIMER0_IRQHandler(void)
+/**
+ * Initialize and configure TIMER0
+ */
+bool timer_init()
 {
-	uint32_t curr = get_curr_ticks();
-	uint8_t id_mask = 0;
-	uint8_t id;
+    // configure 16MHz crystal frequency
+    CLOCK_XTALFREQ = 0xFF;
 
-	for (id = 0; id < MAX_TIMERS; id++) {
-		if (NRF_TIMER0->EVENTS_COMPARE[id]) {
-			NRF_TIMER0->EVENTS_COMPARE[id] = 0UL;
+    // according to the Reference Manual the RADIO requires the crystal as clock source
+    CLOCK_HFCLKSTAT = 1;
 
-			if (timers[id].active)
-				id_mask |= BIT(id);
-		}
-	}
+    // start high frequency clock
+    if (!CLOCK_EVENT_HFCLKSTARTED)
+    {
+        CLOCK_TASK_HFCLKSTART = 1;
+        while (!CLOCK_EVENT_HFCLKSTARTED)
+            asm("nop");
+    }
 
-	for (id = 0; id < MAX_TIMERS; id++) {
-		if (id_mask & BIT(id)) {
-			if (timers[id].type == TIMER_REPEATED) {
-				update_cc(id, curr + timers[id].ticks
-								- DRIFT_FIX);
-			} else if (timers[id].type == TIMER_SINGLESHOT) {
-				timers[id].active = 0;
-				active--;
+    TIMER_MODE(TIMER0)      = TIMER_MODE_COUNTDOWN;
+    TIMER_BITMODE(TIMER0)   = TIMER_BITMODE_24BIT;
+    TIMER_PRESCALER(TIMER0) = TIMER_PRESCALE;
 
-				if (active == 0) {
-					NRF_TIMER0->TASKS_STOP = 1UL;
-					NRF_TIMER0->TASKS_CLEAR = 1UL;
-				}
-			}
+    TIMER_INTENCLR(TIMER0)  = ~0;
+    interrupt_enable(TIMER0_INTERRUPT);
 
-			timers[id].cb();
-		}
-	}
+    // initialize counters
+    memset(timer_cc, 0, sizeof(timer_cc));
+
+    return 0;
 }
 
-int16_t timer_init(void)
+/**
+ * Create a new timer_cc (countdown) in TIMER0
+ *
+ * @Returns
+ *      the number of the timer_cc, if successfull
+ *      -1, if no slot available
+ *      -2, if the specified tiemr type was invalid
+ */
+int8_t timer_create(uint8_t type)
 {
-	if (NRF_CLOCK->EVENTS_HFCLKSTARTED == 0UL) {
-		NRF_CLOCK->TASKS_HFCLKSTART = 1UL;
-		while (NRF_CLOCK->EVENTS_HFCLKSTARTED == 0UL);
-	}
+    int8_t id;
 
-	NRF_TIMER0->MODE = TIMER_MODE_MODE_Timer;
-	NRF_TIMER0->BITMODE = TIMER_BITMODE_BITMODE_24Bit;
-	NRF_TIMER0->PRESCALER = TIMER_PRESCALER;
+    if (type != TIMER_SINGLESHOT && type != TIMER_REPEATED)
+        return -2;
 
-	NRF_TIMER0->INTENCLR = TIMER_INTENCLR_COMPARE0_Msk
-						| TIMER_INTENCLR_COMPARE1_Msk
-						| TIMER_INTENCLR_COMPARE2_Msk
-						| TIMER_INTENCLR_COMPARE3_Msk;
+    for (id = 0; id < COUNTERS_PER_TIMER; id++) {
+        if (!timer_cc[id].enabled)
+            goto create;
+    }
 
-	NVIC_SetPriority(TIMER0_IRQn, IRQ_PRIORITY_HIGH);
-	NVIC_ClearPendingIRQ(TIMER0_IRQn);
-	NVIC_EnableIRQ(TIMER0_IRQn);
-
-	memset(timers, 0, sizeof(timers));
-
-	return 0;
-}
-
-int16_t timer_create(uint8_t type)
-{
-	int16_t id;
-
-	if (type != TIMER_SINGLESHOT && type != TIMER_REPEATED)
-		return -EINVAL;
-
-	for (id = 0; id < MAX_TIMERS; id++) {
-		if (!timers[id].enabled)
-			goto create;
-	}
-
-	return -ENOMEM;
+    return -1;
 
 create:
-	timers[id].enabled = 1;
-	timers[id].active = 0;
-	timers[id].type = type;
+    timer_cc[id].enabled = 1;
+    timer_cc[id].active = 0;
+    timer_cc[id].type = type;
 
-	return id;
+    return id;
 }
 
-int16_t timer_start(int16_t id, uint32_t us, timer_cb_t cb)
+bool timer_start(int8_t id, uint32_t us, timer_callback_t callback)
 {
-	uint32_t curr = get_curr_ticks();
-	uint32_t ticks;
+    uint32_t curr = get_curr_ticks();
+    uint32_t ticks;
 
-	if (id < 0)
-		return -EINVAL;
+    if (id < 0)
+        return false;
 
-	if (!timers[id].enabled)
-		return -EINVAL;
+    if (!timer_cc[id].enabled)
+        return false;
 
-	if (timers[id].active)
-		return -EALREADY;
+    if (timer_cc[id].active)
+        return false;
 
-	ticks = us2ticks(us);
+    ticks = us2ticks(us);
 
-	if (ticks >= 0xFFFFFF)
-		return -EINVAL;
+    if (ticks >= 0xFFFFFF)
+        return false;
 
-	update_cc(id, curr + ticks);
+    set_timer(id, curr + ticks);
 
-	timers[id].active = 1;
-	timers[id].ticks = ticks;
-	timers[id].cb = cb;
+    timer_cc[id].active = 1;
+    timer_cc[id].ticks = ticks;
+    timer_cc[id].callback = callback;
 
-	if (active == 0) {
-		NRF_TIMER0->TASKS_START = 1UL;
-	}
+    if (ccs_active == 0) {
+        TIMER_TASK_START(TIMER0) = 1;
+    }
 
-	active++;
+    ccs_active++;
 
-	return 0;
+    return true;
 }
 
-int16_t timer_stop(int16_t id)
+bool timer_stop(int8_t id)
 {
-	uint32_t clr_mask = 0;
-	uint32_t set_mask = 0;
+    if (id < 0 || id >= COUNTERS_PER_TIMER)
+        return false;
 
-	if (id < 0)
-		return -EINVAL;
+    if (!timer_cc[id].active)
+        return false;
 
-	if (!timers[id].active)
-		return -EINVAL;
+    // disable this compare number's interrupt
+    timer_interrupt_upon_compare_disable(TIMER0, id);
 
-	get_clr_set_masks(id, &clr_mask, &set_mask);
-	NRF_TIMER0->INTENCLR = clr_mask;
+    timer_cc[id].active = 0;
+    ccs_active--;
 
-	timers[id].active = 0;
-	active--;
+    if (ccs_active == 0)
+    {
+        TIMER_TASK_STOP(TIMER0)  = 1;
+        TIMER_TASK_CLEAR(TIMER0) = 1;
+    }
 
-	if (active == 0) {
-		NRF_TIMER0->TASKS_STOP = 1UL;
-		NRF_TIMER0->TASKS_CLEAR = 1UL;
-	}
-
-	return 0;
+    return 0;
 }
 
-uint32_t timer_get_remaining_us(int16_t id)
+uint32_t timer_get_remaining_us(int8_t id)
 {
-	uint32_t ticks = 0;
-	uint32_t curr = get_curr_ticks();
+    uint32_t ticks = 0;
+    uint32_t curr = get_curr_ticks();
 
-	if (!timers[id].active)
-		return 0;
+    if (!timer_cc[id].active)
+        return 0;
 
-	if (NRF_TIMER0->CC[id] > curr)
-		ticks = NRF_TIMER0->CC[id] - curr;
-	else
-		ticks = (0xFFFFFF - curr) + NRF_TIMER0->CC[id];
+    if (TIMER_CC(TIMER0)[id] > curr)
+        ticks = TIMER_CC(TIMER0)[id] - curr;
+    else
+        ticks = (0xFFFFFF - curr) + TIMER_CC(TIMER0)[id];
 
-	return ticks2us(ticks);
+    return ticks2us(ticks);
 }
