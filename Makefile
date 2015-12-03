@@ -24,15 +24,17 @@ OPENOCD_CFG = openocd.cfg
 #
 # Compiler and Linker
 #
-CFLAGS += -std=gnu99 -Wall -g -mcpu=cortex-m0 -mthumb -mabi=aapcs -mfloat-abi=soft
+CFLAGS  = -std=gnu99 -Wall -g -mcpu=cortex-m0 -mthumb -mabi=aapcs -mfloat-abi=soft
 # keep every function in separate section. This will allow linker to dump unused functions
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums
 
 LINKER_SCRIPT = nrf51.ld
-LDFLAGS += -nostartfiles -nostdlib -lgcc -static
+LDFLAGS  = -nostartfiles -nostdlib -static --gc-sections
 LDFLAGS += -L /usr/lib/gcc/arm-none-eabi/4.8/armv6-m/
 LDFLAGS += -L /usr/lib/arm-none-eabi/newlib/armv6-m/
+LDFLAGS += -L libaeabi-cortexm0/
+LDFLAGS += --start-group -lgcc -laeabi-cortexm0
 LDFLAGS += -T $(LINKER_SCRIPT)
 
 #
@@ -41,13 +43,18 @@ LDFLAGS += -T $(LINKER_SCRIPT)
 
 all: demo_leds.elf demo_uart.elf demo_radio.elf
 
+libaeabi-cortexm0/libaeabi-cortexm0.a: libaeabi-cortexm0/*.S 
+	cd libaeabi-cortexm0/
+	make all
+	cd ..
+
 demo_leds.elf: nrf51_startup.o system_nrf51.o delay.o demo_leds.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 demo_uart.elf: nrf51_startup.o system_nrf51.o strings.o heap.o fifo.o uart.o delay.o demo_uart.o 
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_radio.elf: nrf51_startup.o system_nrf51.o strings.o heap.o fifo.o uart.o delay.o radio.o demo_radio.o
+demo_radio.elf: libaeabi-cortexm0/libaeabi-cortexm0.a nrf51_startup.o system_nrf51.o strings.o heap.o fifo.o uart.o delay.o timer.o radio.o demo_radio.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 %.o: %.c %s
