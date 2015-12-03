@@ -232,7 +232,7 @@ bool radio_prepare(uint8_t channel, uint32_t addr, uint32_t crcinit)
      */
     RADIO_DATAWHITEIV = channel;
 
-    RADIO_CRCINIT = 0x555555;
+    RADIO_CRCINIT = crcinit;
 
     uint8_t frequency = radio_channel_to_frequency(channel);
     RADIO_FREQUENCY = frequency;
@@ -347,7 +347,7 @@ void radio_init(void)
     // configure 16MHz crystal frequency
     CLOCK_XTALFREQ = 0xFF;
 
-    // use crystal oscillator (more precise, than RC oscillator)
+    // according to the Reference Manual the RADIO requires the crystal as clock source
     CLOCK_HFCLKSTAT = 1;
 
     // wait for high frequency clock to get started

@@ -15,7 +15,9 @@
 #define TIMER_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "cortex_m0.h"
+#include "heap.h"
 #include "clock.h"
 
 // BASE
