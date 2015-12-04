@@ -118,6 +118,20 @@ int main()
     }
 */
 
+    while (true)
+    {
+//        https://github.com/interoberlin/nrf51-playground/issues/8:
+//        channel_index = (channel_index + 1) % 3;
+        channel_index++;
+        if (channel_index > 2)
+            channel_index = 0;
+        uint8_t channel = advertising_channels[channel_index];
+        radio_prepare(channel, ADVERTISING_CHANNEL_ACCESS_ADDRESS, ADVERTISING_CHANNEL_CRC);
+        radio_send(adv_nonconn_ind);
+        delay_ms(10);
+    }
+
+/*
     timer_init();
 
     int8_t advertising_timer = timer_create(TIMER_REPEATED);
@@ -127,6 +141,7 @@ int main()
     // continue indefinitely
     while (true)
         asm("wfi");
+*/
 
     return 0;
 }

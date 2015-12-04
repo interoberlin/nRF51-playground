@@ -14,10 +14,11 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-#include <stdbool.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+
 #include "cortex_m0.h"
-#include "heap.h"
 #include "clock.h"
 
 // BASE

@@ -43,6 +43,12 @@ SECTIONS
         code_end = .;
     } > FLASH
 
+	.ARM.exidx : {
+	    __exidx_start = .;
+	    *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+	    __exidx_end = .;
+	} > FLASH
+
     /*
      * Reserve RAM space for initialized variables and constants
      * https://en.wikipedia.org/wiki/Data_segment 

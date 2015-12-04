@@ -11,8 +11,6 @@
 
 #include <stdint.h>
 
-uint32_t strlen(char* s);
-
 void nibble2hex(char *s, uint8_t n);
 void char2hex(char *s, char *c);
 
