@@ -39,9 +39,12 @@ LDFLAGS += -T $(LINKER_SCRIPT)
 # Build targets
 #
 
-all: demo_leds.elf demo_uart.elf demo_radio.elf
+all: demo_uart.elf demo_leds.elf demo_rgbstrip.elf demo_radio.elf
 
 demo_leds.elf: nrf51_startup.o system_nrf51.o delay.o demo_leds.o
+	$(LD) $(LDFLAGS) $^ -o $@
+
+demo_rgbstrip.elf: nrf51_startup.o system_nrf51.o delay.o demo_rgbstrip.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 demo_uart.elf: nrf51_startup.o system_nrf51.o strings.o heap.o fifo.o uart.o delay.o demo_uart.o 
