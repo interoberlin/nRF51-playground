@@ -23,6 +23,8 @@ MEMORY
   RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 32k
 }
 
+_heap_size = 512;
+
 /*
   FICR  (r)   : ORIGIN = 0x10000000
   UICR  (r)   : ORIGIN = 0x10001000
@@ -67,6 +69,7 @@ SECTIONS
     {
         heap_begin = .;
         *(.heap*)
+        . = . + _heap_size;
         heap_end = .;
     } > RAM
 

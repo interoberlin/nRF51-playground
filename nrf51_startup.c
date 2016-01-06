@@ -8,6 +8,7 @@
  */
 
 #include <stdint.h>
+#include "cortex_m0.h"
 
 /*
  * Addresses defined in the linker script
@@ -20,6 +21,9 @@ extern uint32_t data_end;
 
 extern uint32_t bss_begin;
 extern uint32_t bss_end;
+
+extern uint32_t heap_begin;
+extern uint32_t heap_end;
 
 extern uint32_t stack_begin;
 extern uint32_t stack_end;
@@ -50,6 +54,8 @@ void SysTick_Handler()      WEAK_ALIAS(Default_Handler);
 // SoC-specific ISRs
 void POWER_CLOCK_Handler()  WEAK_ALIAS(Default_Handler);
 void RADIO_Handler()        WEAK_ALIAS(Default_Handler);
+//extern void uart_isr();
+//void UART0_Handler()        WEAK_ALIAS(uart_isr);
 void UART0_Handler()        WEAK_ALIAS(Default_Handler);
 void SPI0_TWI0_Handler()    WEAK_ALIAS(Default_Handler);
 void SPI1_TWI1_Handler()    WEAK_ALIAS(Default_Handler);
@@ -144,20 +150,27 @@ extern int main();
  */
 void Reset_Handler()
 {
-    // copy data section from Flash to RAM
+    // copy initialized variables from flash memory to the data section in RAM
     uint8_t *src, *dst;
     src = (uint8_t*) &code_end;
     dst = (uint8_t*) &data_begin;
-    while (dst < (uint8_t *) &data_end)
+    while (dst < (uint8_t*) &data_end)
         *dst++ = *src++;
 
-    // clear the bss section
+    // clear the bss section: initialize uninitialized variables with zeros
+    // clear the heap section: memory shall be filled with zeros after malloc
     dst = (uint8_t*) &bss_begin;
-    while (dst < (uint8_t*) bss_end)
+    while (dst < (uint8_t*) &heap_end)
         *dst++ = 0;
+
+    // the stack does not need to be filled with zeros,
+    // as all pop'ed values will necessarily have previously been push'ed
 
     // all initialization is done, jump to main function
     main();
+    
+    // this point should never be reached
+    // TODO: go to deep sleep or reset
 }
 
 /*
@@ -166,7 +179,8 @@ void Reset_Handler()
  */
 void Default_Handler()
 {
-    // sleep mode: wait for interrupt
-    // http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0497a/BABHHGEB.html
-    asm("wfi");
+    // mentioned here for (hard-)fault debugging:
+    uint32_t icsr = ICSR;
+    uint32_t interrupt_active = INTACTIVE;
+    uint32_t interrupt_pending = INTPENDING;
 }
