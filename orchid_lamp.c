@@ -55,7 +55,7 @@ typedef struct
 /*
  * One "pulse": Switch LEDs on, make 256 steps
  */
-void PWM(rgb_t *pwm)
+void PWM(rgb_t *pwm, uint8_t white)
 {
     if (pwm->red > 0)
         on(PIN_RED);
@@ -63,6 +63,7 @@ void PWM(rgb_t *pwm)
         on(PIN_GREEN);
     if (pwm->blue > 0)
         on(PIN_BLUE);
+    on(PIN_WARMWHITE);
 
     /*
      * PWM with 100Hz:
@@ -77,6 +78,8 @@ void PWM(rgb_t *pwm)
             off(PIN_GREEN);
         if (pwm->blue == i)
             off(PIN_BLUE);
+        if (white == i)
+            off(PIN_WARMWHITE);
         delay_us(15); //39
     }
 }
@@ -108,9 +111,11 @@ int main()
 
     // current color
     volatile rgb_t pwm;
+    uint8_t white_current = 0;
 
     // next color
     volatile rgb_t color;
+    uint8_t white_next = 255;
     
     // enable random number generator
     RNG_SHORTS = RNG_SHORTCUT_VALRDY_STOP;
@@ -119,9 +124,12 @@ int main()
     while(true)
     {
         // fade towards color
-        while (color.red != pwm.red || color.green != pwm.green || color.blue != pwm.blue)
+        while  (color.red != pwm.red ||
+                color.green != pwm.green ||
+                color.blue != pwm.blue ||
+                white_next != white_current)
         {
-            PWM(&pwm);
+            PWM(&pwm, white_current);
 
 //            for (uint8_t i=0; i<1; i++)
 //            {
@@ -139,17 +147,23 @@ int main()
                     pwm.blue++;
                 if (color.blue < pwm.blue)
                     pwm.blue--;
+
+                if (white_next > white_current)
+                    white_current++;
+                if (white_next < white_current)
+                    white_current--;
 //            }
         }
 
         // display this color for a while
         for (uint8_t i=0; i<100; i++)
-            PWM(&color);
+            PWM(&color, white_current);
 
         // choose new, random color
         color.red   = random();
         color.green = random();
         color.blue  = random();
+        white_next  = random();
     }
 
     return 0;
