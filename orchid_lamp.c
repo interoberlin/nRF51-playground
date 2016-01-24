@@ -47,23 +47,20 @@ void setup_led_pins()
 #define on(led)     nrf_gpio_pin_set(led)
 #define off(led)    nrf_gpio_pin_clear(led)
 
-typedef struct
-{
-    uint8_t red, green, blue, white;
-} color_t;
+typedef uint8_t color_t[4];
 
 /*
  * One "pulse": Switch LEDs on, make 256 steps
  */
-void PWM(color_t *pwm)
+void PWM(color_t color_current)
 {
-    if (pwm->red > 0)
+    if (color_current[0] > 0)
         on(PIN_RED);
-    if (pwm->green > 0)
+    if (color_current[1] > 0)
         on(PIN_GREEN);
-    if (pwm->blue > 0)
+    if (color_current[2] > 0)
         on(PIN_BLUE);
-    if (pwm->white > 0)
+    if (color_current[3] > 0)
         on(PIN_WARMWHITE);
 
     /*
@@ -73,13 +70,13 @@ void PWM(color_t *pwm)
     uint32_t i;
     for (i=0; i<255; i++)
     {
-        if (pwm->red == i)
+        if (color_current[0] == i)
             off(PIN_RED);
-        if (pwm->green == i)
+        if (color_current[1] == i)
             off(PIN_GREEN);
-        if (pwm->blue == i)
+        if (color_current[2] == i)
             off(PIN_BLUE);
-        if (pwm->white == i)
+        if (color_current[3] == i)
             off(PIN_WARMWHITE);
         delay_us(15); //39
     }
@@ -106,35 +103,24 @@ uint8_t random()
     return result;
 }
 
-void fade_towards(color_t* color, color_t* pwm)
+void fade_towards(color_t color_current, color_t color_next)
 {
-    while  (color->red   != pwm->red   ||
-            color->green != pwm->green ||
-            color->blue  != pwm->blue  ||
-            color->white != pwm->white)
+    while  (color_next[0] != color_current[0] ||
+            color_next[1] != color_current[1] ||
+            color_next[2] != color_current[2] ||
+            color_next[3] != color_current[3])
     {
-        PWM(pwm);
+        // output pulse-width modulation
+        PWM(color_current);
 
-        // update color
-        if (color->red > pwm->red)
-            pwm->red++;
-        if (color->red < pwm->red)
-            pwm->red--;
-
-        if (color->green > pwm->green)
-            pwm->green++;
-        if (color->green < pwm->green)
-            pwm->green--;
-
-        if (color->blue > pwm->blue)
-            pwm->blue++;
-        if (color->blue < pwm->blue)
-            pwm->blue--;
-
-        if (color->white > pwm->white)
-            pwm->white++;
-        if (color->white < pwm->white)
-            pwm->white--;
+        // update PWM timing to new color
+        for (uint8_t i=0; i<4; i++)
+        {
+            if (color_next[i] > color_current[i])
+                color_current[i]++;
+            if (color_next[i] < color_current[i])
+                color_current[i]--;
+        }
     }
 }
 
@@ -143,7 +129,7 @@ int main()
     setup_led_pins();
 
     // current color
-    color_t pwm;
+    color_t color_current;
 
     // next color
     color_t color_next;
@@ -156,17 +142,17 @@ int main()
     while(true)
     {
         // fade towards color
-        fade_towards(&color_next, &pwm);
+        fade_towards(color_current, color_next);
 
         // display this color for a while
         for (uint8_t i=0; i<200; i++)
-            PWM(&color_next);
+            PWM(color_next);
 
         // choose new, random color
-        color_next.red   = random();
-        color_next.green = random();
-        color_next.blue  = random();
-        color_next.white  = random();
+        color_next[0] = random();
+        color_next[1] = random();
+        color_next[2] = random();
+        color_next[3] = random();
     }
 
     return 0;
