@@ -49,13 +49,13 @@ void setup_led_pins()
 
 typedef struct
 {
-    uint8_t red, green, blue;
-} rgb_t;
+    uint8_t red, green, blue, white;
+} color_t;
 
 /*
  * One "pulse": Switch LEDs on, make 256 steps
  */
-void PWM(rgb_t *pwm, uint8_t white)
+void PWM(color_t *pwm)
 {
     if (pwm->red > 0)
         on(PIN_RED);
@@ -63,7 +63,8 @@ void PWM(rgb_t *pwm, uint8_t white)
         on(PIN_GREEN);
     if (pwm->blue > 0)
         on(PIN_BLUE);
-    on(PIN_WARMWHITE);
+    if (pwm->white > 0)
+        on(PIN_WARMWHITE);
 
     /*
      * PWM with 100Hz:
@@ -78,7 +79,7 @@ void PWM(rgb_t *pwm, uint8_t white)
             off(PIN_GREEN);
         if (pwm->blue == i)
             off(PIN_BLUE);
-        if (white == i)
+        if (pwm->white == i)
             off(PIN_WARMWHITE);
         delay_us(15); //39
     }
@@ -105,65 +106,67 @@ uint8_t random()
     return result;
 }
 
+void fade_towards(color_t* color, color_t* pwm)
+{
+    while  (color->red   != pwm->red   ||
+            color->green != pwm->green ||
+            color->blue  != pwm->blue  ||
+            color->white != pwm->white)
+    {
+        PWM(pwm);
+
+        // update color
+        if (color->red > pwm->red)
+            pwm->red++;
+        if (color->red < pwm->red)
+            pwm->red--;
+
+        if (color->green > pwm->green)
+            pwm->green++;
+        if (color->green < pwm->green)
+            pwm->green--;
+
+        if (color->blue > pwm->blue)
+            pwm->blue++;
+        if (color->blue < pwm->blue)
+            pwm->blue--;
+
+        if (color->white > pwm->white)
+            pwm->white++;
+        if (color->white < pwm->white)
+            pwm->white--;
+    }
+}
+
 int main()
 {
     setup_led_pins();
 
     // current color
-    volatile rgb_t pwm;
-    uint8_t white_current = 0;
+    color_t pwm;
 
     // next color
-    volatile rgb_t color;
-    uint8_t white_next = 255;
+    color_t color_next;
     
     // enable random number generator
     RNG_SHORTS = RNG_SHORTCUT_VALRDY_STOP;
     RNG_START = 1;
 
+    // forever
     while(true)
     {
         // fade towards color
-        while  (color.red != pwm.red ||
-                color.green != pwm.green ||
-                color.blue != pwm.blue ||
-                white_next != white_current)
-        {
-            PWM(&pwm, white_current);
-
-//            for (uint8_t i=0; i<1; i++)
-//            {
-                if (color.red > pwm.red)
-                    pwm.red++;
-                if (color.red < pwm.red)
-                    pwm.red--;
-
-                if (color.green > pwm.green)
-                    pwm.green++;
-                if (color.green < pwm.green)
-                    pwm.green--;
-
-                if (color.blue > pwm.blue)
-                    pwm.blue++;
-                if (color.blue < pwm.blue)
-                    pwm.blue--;
-
-                if (white_next > white_current)
-                    white_current++;
-                if (white_next < white_current)
-                    white_current--;
-//            }
-        }
+        fade_towards(&color_next, &pwm);
 
         // display this color for a while
-        for (uint8_t i=0; i<100; i++)
-            PWM(&color, white_current);
+        for (uint8_t i=0; i<200; i++)
+            PWM(&color_next);
 
         // choose new, random color
-        color.red   = random();
-        color.green = random();
-        color.blue  = random();
-        white_next  = random();
+        color_next.red   = random();
+        color_next.green = random();
+        color_next.blue  = random();
+        color_next.white  = random();
     }
 
     return 0;
