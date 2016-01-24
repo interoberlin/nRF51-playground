@@ -68,7 +68,7 @@ void PWM(color_t color_current)
      * 256 steps in 10ms, 39us per step
      */
     uint32_t i;
-    for (i=0; i<255; i++)
+    for (i=0; i<256; i++)
     {
         if (color_current[0] == i)
             off(PIN_RED);
@@ -78,7 +78,8 @@ void PWM(color_t color_current)
             off(PIN_BLUE);
         if (color_current[3] == i)
             off(PIN_WARMWHITE);
-        delay_us(15); //39
+        delay_us(20); //39
+        // 5: LEDs flicker
     }
 }
 
@@ -111,10 +112,13 @@ void fade_towards(color_t color_current, color_t color_next)
             color_next[3] != color_current[3])
     {
         // output pulse-width modulation
-        PWM(color_current);
+        uint8_t i;
+
+        for (i=0; i<2; i++)
+            PWM(color_current);
 
         // update PWM timing to new color
-        for (uint8_t i=0; i<4; i++)
+        for (i=0; i<4; i++)
         {
             if (color_next[i] > color_current[i])
                 color_current[i]++;
@@ -145,14 +149,14 @@ int main()
         fade_towards(color_current, color_next);
 
         // display this color for a while
-        for (uint8_t i=0; i<200; i++)
+        for (uint8_t i=0; i<250; i++)
             PWM(color_next);
 
         // choose new, random color
         color_next[0] = random();
         color_next[1] = random();
         color_next[2] = random();
-        color_next[3] = random();
+        color_next[3] = 1 + (random() > 128 ? 0 : 254);
     }
 
     return 0;
