@@ -20,7 +20,7 @@ ENTRY(Reset_Handler)
 MEMORY
 {
   FLASH (rx)  : ORIGIN = 0x00000000, LENGTH = 256k
-  RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 32k
+  RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 16k
 }
 
 _heap_size = 512;

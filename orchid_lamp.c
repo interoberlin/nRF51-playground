@@ -16,52 +16,69 @@
 
 /*
  * Stamen lighting:
- * 2x 6 warm white SMD LEDs
+ * Revision 1: 2x 6 warm white SMD LEDs
+ * Revision 2: SMD RGB LEDs
  */
-#define PIN_WARMWHITE       8
+#define PIN_STAMEN_RED   8
+#define PIN_STAMEN_GREEN 6
+#define PIN_STAMEN_BLUE  10
 
 /*
  * Calyx lighting:
- * 12 RGB SMD LEDs
+ * Revision 1: 12 RGB SMD LEDs
+ * Revision 2: SMD RGB LEDs
  */
-#define PIN_GREEN           7
-#define PIN_RED             5
-#define PIN_BLUE            6
+#define PIN_CALYX_RED    7
+#define PIN_CALYX_GREEN  9
+#define PIN_CALYX_BLUE   5
 
-/*
- * For future purpose:
- * Fibre lighting:
- * WS2811S
- */
-#define PIN_WS2811_DATA     10
-
-void setup_led_pins()
-{
-    nrf_gpio_pin_dir_set(PIN_WARMWHITE,     NRF_GPIO_PIN_DIR_OUTPUT);
-    nrf_gpio_pin_dir_set(PIN_GREEN,         NRF_GPIO_PIN_DIR_OUTPUT);
-    nrf_gpio_pin_dir_set(PIN_BLUE,          NRF_GPIO_PIN_DIR_OUTPUT);
-    nrf_gpio_pin_dir_set(PIN_RED,           NRF_GPIO_PIN_DIR_OUTPUT);
-    nrf_gpio_pin_dir_set(PIN_WS2811_DATA,   NRF_GPIO_PIN_DIR_OUTPUT);
-}
-
+// short makros to switch LEDs on and off
 #define on(led)     nrf_gpio_pin_set(led)
 #define off(led)    nrf_gpio_pin_clear(led)
 
-typedef uint8_t color_t[4];
+/*
+ * Setup LEDs: All pins have direction OUTPUT
+ */
+void setup_led_pins()
+{
+    nrf_gpio_pin_dir_set(PIN_STAMEN_RED,    NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_dir_set(PIN_STAMEN_GREEN,  NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_dir_set(PIN_STAMEN_BLUE,   NRF_GPIO_PIN_DIR_OUTPUT);
+
+    off(PIN_STAMEN_RED);
+    off(PIN_STAMEN_GREEN);
+    off(PIN_STAMEN_BLUE);
+
+    nrf_gpio_pin_dir_set(PIN_CALYX_RED,     NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_dir_set(PIN_CALYX_GREEN,   NRF_GPIO_PIN_DIR_OUTPUT);
+    nrf_gpio_pin_dir_set(PIN_CALYX_BLUE,    NRF_GPIO_PIN_DIR_OUTPUT);
+
+    off(PIN_CALYX_RED);
+    off(PIN_CALYX_GREEN);
+    off(PIN_CALYX_BLUE);
+}
+
+typedef uint8_t color_t[6];
 
 /*
  * One "pulse": Switch LEDs on, make 256 steps
  */
 void PWM(color_t color_current)
 {
+    // Only switch on, if on time > 0
     if (color_current[0] > 0)
-        on(PIN_RED);
+        on(PIN_STAMEN_RED);
     if (color_current[1] > 0)
-        on(PIN_GREEN);
+        on(PIN_STAMEN_GREEN);
     if (color_current[2] > 0)
-        on(PIN_BLUE);
+        on(PIN_STAMEN_BLUE);
+
     if (color_current[3] > 0)
-        on(PIN_WARMWHITE);
+        on(PIN_CALYX_RED);
+    if (color_current[4] > 0)
+        on(PIN_CALYX_GREEN);
+    if (color_current[5] > 0)
+        on(PIN_CALYX_BLUE);
 
     /*
      * PWM with 100Hz:
@@ -71,13 +88,19 @@ void PWM(color_t color_current)
     for (i=0; i<256; i++)
     {
         if (color_current[0] == i)
-            off(PIN_RED);
+            off(PIN_STAMEN_RED);
         if (color_current[1] == i)
-            off(PIN_GREEN);
+            off(PIN_STAMEN_GREEN);
         if (color_current[2] == i)
-            off(PIN_BLUE);
+            off(PIN_STAMEN_BLUE);
+
         if (color_current[3] == i)
-            off(PIN_WARMWHITE);
+            off(PIN_CALYX_RED);
+        if (color_current[4] == i)
+            off(PIN_CALYX_GREEN);
+        if (color_current[5] == i)
+            off(PIN_CALYX_BLUE);
+
         delay_us(20); //39
         // 5: LEDs flicker
     }
@@ -106,10 +129,14 @@ uint8_t random()
 
 void fade_towards(color_t color_current, color_t color_next)
 {
-    while  (color_next[0] != color_current[0] ||
+    while  (
+            color_next[0] != color_current[0] ||
             color_next[1] != color_current[1] ||
             color_next[2] != color_current[2] ||
-            color_next[3] != color_current[3])
+            color_next[3] != color_current[3] ||
+            color_next[4] != color_current[4] ||
+            color_next[5] != color_current[5]
+            )
     {
         // output pulse-width modulation
         uint8_t i;
@@ -118,7 +145,7 @@ void fade_towards(color_t color_current, color_t color_next)
             PWM(color_current);
 
         // update PWM timing to new color
-        for (i=0; i<4; i++)
+        for (i=0; i<6; i++)
         {
             if (color_next[i] > color_current[i])
                 color_current[i]++;
@@ -155,8 +182,10 @@ int main()
         // choose new, random color
         color_next[0] = random();
         color_next[1] = random();
-        color_next[2] = random();
-        color_next[3] = 1 + (random() > 128 ? 0 : 254);
+        color_next[2] = random() >> 2;
+        color_next[3] = random();
+        color_next[4] = random();
+        color_next[5] = random() >> 2;
     }
 
     return 0;
