@@ -16,7 +16,6 @@
 #include "cortex_m0.h"
 
 #include "strings.h"
-#include "heap.h"
 #include "fifo.h"
 
 /*
