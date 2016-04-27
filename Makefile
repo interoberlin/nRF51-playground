@@ -29,7 +29,8 @@ CFLAGS += -std=gnu99 -Wall -g -mcpu=cortex-m0 -mthumb -mabi=aapcs -mfloat-abi=so
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums
 
-LINKER_SCRIPT = nrf51.ld
+LINKER_SCRIPT = nrf51822-qfac.ld
+
 LDFLAGS += -nostartfiles -nostdlib -lgcc -static
 LDFLAGS += -L /usr/lib/gcc/arm-none-eabi/4.8/armv6-m/
 LDFLAGS += -L /usr/lib/arm-none-eabi/newlib/armv6-m/
@@ -39,15 +40,21 @@ LDFLAGS += -T $(LINKER_SCRIPT)
 # Build targets
 #
 
-all: demo_leds.elf demo_uart.elf demo_radio.elf
+all: demo_uart.elf demo_leds.elf demo_rgbstrip.elf orchid_lamp.elf demo_radio.elf
 
 demo_leds.elf: nrf51_startup.o system_nrf51.o delay.o demo_leds.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_uart.elf: nrf51_startup.o system_nrf51.o strings.o heap.o fifo.o uart.o delay.o demo_uart.o 
+demo_rgbstrip.elf: nrf51_startup.o system_nrf51.o delay.o demo_rgbstrip.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_radio.elf: nrf51_startup.o system_nrf51.o strings.o heap.o fifo.o uart.o delay.o radio.o demo_radio.o
+orchid_lamp.elf: nrf51_startup.o system_nrf51.o delay.o orchid_lamp.o
+	$(LD) $(LDFLAGS) $^ -o $@
+
+demo_uart.elf: nrf51_startup.o system_nrf51.o strings.o fifo.o uart.o delay.o demo_uart.o 
+	$(LD) $(LDFLAGS) $^ -o $@
+
+demo_radio.elf: nrf51_startup.o system_nrf51.o strings.o fifo.o uart.o delay.o timer.o radio.o demo_radio.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 %.o: %.c %s
@@ -61,7 +68,6 @@ demo_radio.elf: nrf51_startup.o system_nrf51.o strings.o heap.o fifo.o uart.o de
 
 clean:
 	rm -f *.o *.out *.bin *.elf *.hex *.map main demo_leds demo_uart demo_radio
-
 
 erase:
 	$(OPENOCD) -c "set WORKAREASIZE 0;" -f $(OPENOCD_CFG) -c "init; reset halt; nrf51 mass_erase; shutdown;"
