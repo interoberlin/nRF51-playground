@@ -10,46 +10,70 @@
 
 #include "ws2811s.h"
 
-#define LOW_SPEED 1
+//#define LOW_SPEED
 
-void HIGH(uint8_t pin)
-{
-    nrf_gpio_pin_set(pin);
+uint32_t mask = 0;
+
+// using defines instead of functions drastically increases switching speed
+
+// 1.18us
+#define ONE_HIGH() \
+{ \
+    NRF_GPIO->OUTSET = mask; \
+    asm volatile("nop;nop;nop;nop;nop;nop;nop;nop;nop;"); \
 }
 
-void LOW(uint8_t pin)
-{
-    nrf_gpio_pin_clear(pin);
+// 1.30us
+#define ONE_LOW() \
+{ \
+    NRF_GPIO->OUTCLR = mask; \
+    asm volatile("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;"); \
 }
+
+// 616ns
+#define ZERO_HIGH() NRF_GPIO->OUTSET = mask;
+
+// 2.040us
+#define ZERO_LOW() \
+{ \
+    NRF_GPIO->OUTCLR = mask; \
+    asm volatile("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;"); \
+}
+
+#define HIGH() ONE_HIGH()
+#define LOW()  ONE_LOW()
 
 void T0H()
 {
-    if (LOW_SPEED)
+    #ifdef LOW_SPEED
         // 0.5us = 8 instructions
         asm volatile("nop; nop; nop; nop; nop; nop; nop; nop;");
-    else
+    #else
         asm volatile("nop; nop; nop; nop;");
+    #endif
 }
 
 void T1H()
 {
-    if (LOW_SPEED)
+    #ifdef LOW_SPEED
         // 1.2us = 19.2 instructions
         asm volatile
         (
                 "nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;"
                 "nop; nop; nop; nop; nop; nop; nop; nop; nop;"
         );
-    else
+    #else
+        // 10 instr. => 5.2us?
         asm volatile
         (
                 "nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;"
         );
+    #endif
 }
 
 void T0L()
 {
-    if (LOW_SPEED)
+    #ifdef LOW_SPEED
         // 2.0us = 32 instructions
         asm volatile
         (
@@ -58,17 +82,18 @@ void T0L()
                 "nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;"
                 "nop; nop;"
         );
-    else
+    #else
         asm volatile
         (
                 "nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;"
                 "nop; nop; nop; nop; nop; nop;"
         );
+    #endif
 }
 
 void T1L()
 {
-    if (LOW_SPEED)
+    #ifdef LOW_SPEED
         // 1.3us = 20.8 instructions
         asm volatile
         (
@@ -76,52 +101,102 @@ void T1L()
                 "nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;"
                 "nop;"
         );
-    else
+    #else
         asm volatile
         (
                 "nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;"
         );
-
+    #endif
 }
 
 void RES()
 {
     // >50us = >800 instructions
-    delay_us(50);
+    delay_us(50); // results in 76us
+    //delay_us(25); // oscilloscope says 48us
+    //delay_us(40); // 54.8us
 }
 
 void send_one(uint8_t pin)
 {
-    HIGH(pin);
+    HIGH();
     T1H();
-    LOW(pin);
+    LOW();
     T1L();
 }
 
 void send_zero(uint8_t pin)
 {
-    HIGH(pin);
+    send_one(pin);
+    return;
+    HIGH();
     T0H();
-    LOW(pin);
+    LOW();
     T0L();
 }
 
 // send 24 bits of data
 void ws2811s_send(uint8_t pin, uint32_t color)
 {
-    for (uint8_t i=0; i<24; i++)
-    {
-        if (color & (1 << 23))
-            send_one(pin);
-        else
-            send_zero(pin);
-        color = color << 1;
-    }
+    mask = 1 << pin;
+
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
+    HIGH();
+    LOW();
 }
 
 // reset bus to apply sent data
 void ws2811s_reset(uint8_t pin)
 {
-    LOW(pin);
+    LOW();
     RES();
 }
