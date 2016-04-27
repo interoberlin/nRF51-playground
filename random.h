@@ -11,6 +11,9 @@
 #ifndef RNG_H
 #define RNG_H
 
+#include "stdint.h"
+#include "delay.h"
+
 #define RNG_BASE                0x4000D000
 
 #define RNG_START               (*(volatile uint32_t*)   (RNG_BASE+0x000))
@@ -24,5 +27,10 @@
 
 #define RNG_VALUE               (*(volatile uint32_t*)   (RNG_BASE+0x508))
 
-#endif
+// Initialize random number generator
+void init_random();
 
+// Returns a random number between 0 and 255
+uint8_t random();
+
+#endif

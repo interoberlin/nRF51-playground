@@ -40,12 +40,15 @@ LDFLAGS += -T $(LINKER_SCRIPT)
 # Build targets
 #
 
-all: demo_uart.elf demo_leds.elf demo_rgbstrip.elf orchid_lamp.elf demo_radio.elf
+all: demo_uart.elf demo_leds.elf demo_rgbstrip.elf demo_ws2811s.elf orchid_lamp.elf demo_radio.elf
 
 demo_leds.elf: nrf51_startup.o system_nrf51.o delay.o demo_leds.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_rgbstrip.elf: nrf51_startup.o system_nrf51.o delay.o demo_rgbstrip.o
+demo_rgbstrip.elf: nrf51_startup.o system_nrf51.o delay.o random.o demo_rgbstrip.o
+	$(LD) $(LDFLAGS) $^ -o $@
+
+demo_ws2811s.elf: nrf51_startup.o system_nrf51.o delay.o random.o ws2811s.o demo_ws2811s.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 orchid_lamp.elf: nrf51_startup.o system_nrf51.o delay.o orchid_lamp.o
