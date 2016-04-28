@@ -16,32 +16,35 @@ uint32_t mask = 0;
 
 // using defines instead of functions drastically increases switching speed
 
+#define pin_set()    NRF_GPIO->OUTSET = mask;
+#define pin_clear()  NRF_GPIO->OUTCLR = mask;
+
 // 1.18us
 #define ONE_HIGH() \
 { \
-    NRF_GPIO->OUTSET = mask; \
+    pin_set(); \
     asm volatile("nop;nop;nop;nop;nop;nop;nop;nop;nop;"); \
 }
 
 // 1.30us
 #define ONE_LOW() \
 { \
-    NRF_GPIO->OUTCLR = mask; \
+    pin_clear(); \
     asm volatile("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;"); \
 }
 
 // 616ns
-#define ZERO_HIGH() NRF_GPIO->OUTSET = mask;
+#define ZERO_HIGH() pin_set();
 
 // 2.040us
 #define ZERO_LOW() \
 { \
-    NRF_GPIO->OUTCLR = mask; \
+    pin_clear(); \
     asm volatile("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;"); \
 }
 
-#define HIGH() ONE_HIGH()
-#define LOW()  ONE_LOW()
+#define ONE()  ONE_HIGH();  ONE_LOW();
+#define ZERO() ZERO_HIGH(); ZERO_LOW();
 
 void T0H()
 {
@@ -117,22 +120,116 @@ void RES()
     //delay_us(40); // 54.8us
 }
 
-void send_one(uint8_t pin)
+void on()
 {
-    HIGH();
-    T1H();
-    LOW();
-    T1L();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
+    ONE_HIGH();
+    ONE_LOW();
 }
 
-void send_zero(uint8_t pin)
+void off()
 {
-    send_one(pin);
-    return;
-    HIGH();
-    T0H();
-    LOW();
-    T0L();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
+    ZERO_HIGH();
+    ZERO_LOW();
 }
 
 // send 24 bits of data
@@ -140,63 +237,18 @@ void ws2811s_send(uint8_t pin, uint32_t color)
 {
     mask = 1 << pin;
 
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
+    on();
 
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
+    delay_ms(1000);
 
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
+    off();
 
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
-    HIGH();
-    LOW();
+    delay_ms(1000);
 }
 
 // reset bus to apply sent data
 void ws2811s_reset(uint8_t pin)
 {
-    LOW();
+    pin_clear();
     RES();
 }

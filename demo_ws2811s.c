@@ -28,8 +28,7 @@ void setup()
 
 void loop()
 {
-    //uint32_t color = (random() << 16) | (random() << 8) | random();
-    uint32_t color = 0xffffffff;
+    uint32_t color = (random() << 16) | (random() << 8) | random();
 
     ws2811s_send(PIN_WS2811S, color);
     ws2811s_reset(PIN_WS2811S);
