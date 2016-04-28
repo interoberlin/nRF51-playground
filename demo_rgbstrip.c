@@ -62,25 +62,6 @@ void PWM(rgb_t *pwm)
 
 #define abs(val)    ((val) < 0 ? (-(val)) : (val))
 
-/*
- * Returns a random number between 0 and 255
- */
-uint8_t random()
-{
-    // wait until a random number is available
-    while (RNG_EVENT_VALRDY == 0)
-        delay_us(10);
-
-    // read random number
-    volatile uint8_t result = RNG_VALUE;
-
-    // restart random number generator
-    RNG_EVENT_VALRDY = 0;
-    RNG_START = 1;
-
-    return result;
-}
-
 int main()
 {
     setup_led_pins();
@@ -92,8 +73,7 @@ int main()
     volatile rgb_t color;
     
     // enable random number generator
-    RNG_SHORTS = RNG_SHORTCUT_VALRDY_STOP;
-    RNG_START = 1;
+    init_random();
 
     while(true)
     {
