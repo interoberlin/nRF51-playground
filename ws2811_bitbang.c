@@ -8,7 +8,7 @@
  * License: GNU GPL v3
  */
 
-#include "ws2811s.h"
+#include "ws2811.h"
 
 //#define LOW_SPEED
 
@@ -232,8 +232,14 @@ void off()
     ZERO_LOW();
 }
 
+// prepare output pin
+void ws2811_init(uint8_t pin)
+{
+    nrf_gpio_pin_dir_set(pin, NRF_GPIO_PIN_DIR_OUTPUT);
+}
+
 // send 24 bits of data
-void ws2811s_send(uint8_t pin, uint32_t color)
+void ws2811_send(uint8_t pin, uint32_t color)
 {
     mask = 1 << pin;
 
@@ -247,7 +253,7 @@ void ws2811s_send(uint8_t pin, uint32_t color)
 }
 
 // reset bus to apply sent data
-void ws2811s_reset(uint8_t pin)
+void ws2811_reset(uint8_t pin)
 {
     pin_clear();
     RES();

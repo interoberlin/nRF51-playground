@@ -40,12 +40,12 @@ LDFLAGS += -T $(LINKER_SCRIPT)
 # Build targets
 #
 
-all: demo_uart.elf demo_spi.elf demo_leds.elf demo_rgbstrip.elf orchid_lamp.elf demo_ws2811s.elf demo_radio.elf
+all: demo_uart.elf demo_spi.elf demo_leds.elf demo_rgbstrip.elf orchid_lamp.elf demo_ws2811.elf demo_radio.elf
 
 demo_uart.elf: nrf51_startup.o system_nrf51.o strings.o fifo.o uart.o delay.o demo_uart.o 
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_spi.elf: nrf51_startup.o system_nrf51.o strings.o heap.o fifo.o uart.o delay.o libad53x4/ad53x4.o libad53x4/demo_nrf51.o
+demo_spi.elf: nrf51_startup.o system_nrf51.o strings.o fifo.o uart.o delay.o libad53x4/ad53x4.o libad53x4/demo_nrf51.o
 	$(LD) $(LDFLAGS) $^ -o $@	
 
 demo_leds.elf: nrf51_startup.o system_nrf51.o delay.o demo_leds.o
@@ -57,7 +57,7 @@ demo_rgbstrip.elf: nrf51_startup.o system_nrf51.o delay.o random.o demo_rgbstrip
 orchid_lamp.elf: nrf51_startup.o system_nrf51.o delay.o orchid_lamp.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_ws2811s.elf: nrf51_startup.o system_nrf51.o delay.o random.o ws2811s.o demo_ws2811s.o
+demo_ws2811.elf: nrf51_startup.o system_nrf51.o delay.o random.o ws2811_bitbang.o demo_ws2811.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 demo_radio.elf: nrf51_startup.o system_nrf51.o strings.o fifo.o uart.o delay.o timer.o radio.o demo_radio.o
