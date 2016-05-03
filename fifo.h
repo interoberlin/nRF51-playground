@@ -32,21 +32,14 @@ struct fifo_s
 };
 typedef struct fifo_s fifo_t;
 
-#define fifo_init(fifo) \
-{ \
-    fifo->index_read      = 0; \
-    fifo->index_write     = 0; \
-    fifo->index_write_bit = 0; \
-    fifo->num_available   = 0; \
-}
-
 #define fifo_available(fifo)    ( fifo->num_available > 0 )
 #define fifo_full(fifo)         ( fifo->num_available >= FIFO_SIZE )
 
+void fifo_init(fifo_t* fifo);
 bool fifo_read(fifo_t* fifo, char *dst);
 bool fifo_write(fifo_t* fifo, char *c);
 
 // a special function for WS2811 SPI control: write 5 bits to FIFO
-bool fifo_write_5bits(fifo_t* fifo, uint8_t* value_5bits);
+bool fifo_write_five_bits(fifo_t* fifo, uint8_t* value_5bits);
 
 #endif

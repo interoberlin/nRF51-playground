@@ -7,7 +7,10 @@
  * License: GNU GPLv3
  */
 
-#define INTERRUPT_SPI 3
+#ifndef SPI_MASTER
+#define SPI_MASTER
+
+#include "cortex_m0.h"
 
 /*
  * Base address:
@@ -15,6 +18,9 @@
  */
 #define SPI0     0x40003000
 #define SPI1     0x40004000
+
+#define INTERRUPT_SPI0 3
+#define INTERRUPT_SPI1 4
 
 /*
  * Events
@@ -70,6 +76,9 @@
 #define spi_disable(spi_device)                         SPI_ENABLE(spi_device) = (SPI_ENABLE(spi_device) & (~0x07))
 
 // Interrupts
+#define spi_interrupt_enable(spi_device)                if (spi_device == SPI0) interrupt_enable(INTERRUPT_SPI0);  else interrupt_enable(SPI1);
+#define spi_interrupt_disable(spi_device)               if (spi_device == SPI0) interrupt_disable(INTERRUPT_SPI0); else interrupt_disable(SPI1);
+
 #define spi_interrupt_upon_READY(spi_device)          ((SPI_INTEN   (spi_device)) & 0x04) >> 2)
 #define spi_interrupt_upon_READY_enable(spi_device)     SPI_INTENSET(spi_device)  = 0x04
 #define spi_interrupt_upon_READY_disable(spi_device)    SPI_INTENCLR(spi_device)  = 0x04
@@ -84,4 +93,7 @@
 
 // Read/Write
 #define spi_read(spi_device, word_pointer)              *(word_pointer) = SPI_RXD(spi_device)
-#define spi_write(spi_device, word)                 SPI_TXD(spi_device) = word
+#define spi_write(spi_device, word)                     SPI_TXD(spi_device) = word
+
+#endif
+

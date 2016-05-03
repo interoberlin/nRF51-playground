@@ -57,7 +57,7 @@ demo_rgbstrip.elf: nrf51_startup.o system_nrf51.o delay.o random.o demo_rgbstrip
 orchid_lamp.elf: nrf51_startup.o system_nrf51.o delay.o orchid_lamp.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_ws2811.elf: nrf51_startup.o system_nrf51.o delay.o random.o ws2811_bitbang.o demo_ws2811.o
+demo_ws2811.elf: nrf51_startup.o system_nrf51.o delay.o random.o fifo.o ws2811_spi.o demo_ws2811.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 demo_radio.elf: nrf51_startup.o system_nrf51.o strings.o fifo.o uart.o delay.o timer.o radio.o demo_radio.o

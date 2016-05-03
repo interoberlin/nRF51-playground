@@ -98,13 +98,13 @@
 #define clear_event(event)              event = 0
 
 // Interrupts
-#define UART_INTERRUPT                          2
-#define UART_ISR_VECTOR_ADDRESS                 (16 + UART_INTERRUPT)*4
+#define INTERRUPT_UART0                          2
+#define UART_ISR_VECTOR_ADDRESS                 (16 + INTERRUPT_UART0)*4
 // that's not working:
 //#define set_uart_interrupt_handler(pointer)     *(volatile uint32_t*) (UART_ISR_VECTOR_ADDRESS) = (uint32_t) pointer // +1 to indicate Thumb instruction set
 
-#define uart_interrupt_enable                   interrupt_enable(UART_INTERRUPT)
-#define uart_interrupt_disable                  interrupt_disable(UART_INTERRUPT)
+#define uart_interrupt_enable                   interrupt_enable(INTERRUPT_UART0)
+#define uart_interrupt_disable                  interrupt_disable(INTERRUPT_UART0)
 
 #define uart_interrupt_upon_RXDRDY_enable       *(volatile uint32_t*) (UART_BASE+INTENSET) = (1 << 2)
 #define uart_interrupt_upon_RXDRDY_disable      *(volatile uint32_t*) (UART_BASE+INTENCLR) = (1 << 2)

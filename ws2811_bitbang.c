@@ -8,7 +8,7 @@
  * License: GNU GPL v3
  */
 
-#include "ws2811.h"
+#include "ws2811_bitbang.h"
 
 //#define LOW_SPEED
 

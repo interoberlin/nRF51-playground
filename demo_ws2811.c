@@ -13,26 +13,23 @@
 
 #include "delay.h"
 #include "random.h"
-#include "ws2811.h"
+#include "ws2811_spi.h"
 
 // to which pin is the WS2811S attached?
 #define PIN_WS2811S   10
 
 void setup()
 {
-    ws2811_init(PIN_WS2811S);
-
+    ws2811_init(PIN_WS2811S, SPI0);
     init_random();
 }
 
 void loop()
 {
     uint32_t color = (random() << 16) | (random() << 8) | random();
-
-    ws2811_send(PIN_WS2811S, color);
-    ws2811_reset(PIN_WS2811S);
-
-//    delay_ms(10);
+    ws2811_write(color);
+    ws2811_send();
+    delay_ms(1000);
 }
 
 int main()

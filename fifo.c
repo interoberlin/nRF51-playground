@@ -8,10 +8,18 @@
 
 #include "fifo.h"
 
+void fifo_init(fifo_t* fifo)
+{
+    fifo->index_read      = 0;
+    fifo->index_write     = 0;
+    fifo->index_write_bit = 0;
+    fifo->num_available   = 0;
+}
+
 /*
  * Read one byte from FIFO
  */
-bool fifo_read(struct fifo_s *fifo, char *dst)
+bool fifo_read(fifo_t* fifo, char *dst)
 {
     if (!fifo_available(fifo))
         return false;
@@ -31,7 +39,7 @@ bool fifo_read(struct fifo_s *fifo, char *dst)
 /*
  * Write one byte to FIFO
  */
-bool fifo_write(struct fifo_s *fifo, char *c)
+bool fifo_write(fifo_t* fifo, char *c)
 {
     if (fifo_full(fifo))
         return false;
@@ -51,7 +59,7 @@ bool fifo_write(struct fifo_s *fifo, char *c)
 /*
  * Write 5 bits to FIFO
  */
-bool fifo_write_5bits(fifo_t* fifo, uint8_t* value_5bits)
+bool fifo_write_five_bits(fifo_t* fifo, uint8_t* value_5bits)
 {
     if (fifo_full(fifo))
         return false;
