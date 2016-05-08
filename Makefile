@@ -18,8 +18,6 @@ OBJCOPY = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-objcopy
 OBJDUMP = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-objdump
 SIZE    = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-size
 GDB     = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-gdb
-OPENOCD = /home/code/openocd/src/openocd
-OPENOCD_CFG = openocd.cfg
 
 #
 # Compiler and Linker
@@ -66,28 +64,9 @@ demo_radio.elf: nrf51_startup.o system_nrf51.o strings.o heap.o fifo.o uart.o de
 	$(OBJCOPY) -Obinary $< $@
 
 clean:
-	rm -f *.o *.out *.bin *.elf *.hex *.map main demo_leds demo_uart demo_radio
+	rm -f *.o *.out *.bin *.elf *.hex *.map
 
-erase:
-	$(OPENOCD) -c "set WORKAREASIZE 0;" -f $(OPENOCD_CFG) -c "init; reset halt; nrf51 mass_erase; shutdown;"
-
-flash: $(BIN)
-	$(OPENOCD) -c "set WORKAREASIZE 0;" -f $(OPENOCD_CFG) -c "init; reset halt; program $(BIN) $(STARTADDRESS) verify; shutdown;"
-
-pinreset:
-	# mww: write word to memory
-	# das funktioniert so nicht, falsche Adresse:
-	#$(OPENOCD) -f $(OPENOCD_CFG) -c "init; reset halt; sleep 1; mww phys 0x4001e504 2; mww 0x40000544 1; reset; shutdown;"
-
-debug:
-	$(OPENOCD) -c "set WORKAREASIZE 0;" -f $(OPENOCD_CFG)
-	
-gdb:
-	echo "target remote localhost:3333    \n\
-          monitor reset halt              \n\
-          file $(ELF)                     \n\
-          load                            \n\
-          b _start                        \n\
-          monitor reset                   \n\
-          continue                        \n\
-          set interactive-mode on" | $(GDB)
+#
+# Debugging targets
+#
+include Makefile.openocd
