@@ -27,11 +27,14 @@ CFLAGS += -std=gnu99 -Wall -g -mcpu=cortex-m0 -mthumb -mabi=aapcs -mfloat-abi=so
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums
 
-LINKER_SCRIPT = nrf51.ld
+// TODO: auto-detect chip revision
+CHIP_REVISION = ac
+
+LINKER_SCRIPT = linker/nrf51-blank-xx$(CHIP_REVISION).ld
+LDFLAGS += -T $(LINKER_SCRIPT)
 LDFLAGS += -nostartfiles -nostdlib -lgcc -static
 LDFLAGS += -L /usr/lib/gcc/arm-none-eabi/4.8/armv6-m/
 LDFLAGS += -L /usr/lib/arm-none-eabi/newlib/armv6-m/
-LDFLAGS += -T $(LINKER_SCRIPT)
 
 #
 # Build targets
