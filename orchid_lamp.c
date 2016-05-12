@@ -85,7 +85,7 @@ void PWM(color_t color_current)
      * 256 steps in 10ms, 39us per step
      */
     uint32_t i;
-    for (i=0; i<256; i++)
+    for (i=0; i<255; i++)
     {
         if (color_current[0] == i)
             off(PIN_STAMEN_RED);
@@ -155,6 +155,28 @@ void fade_towards(color_t color_current, color_t color_next)
     }
 }
 
+const color_t color_blood = {255, 0, 0};
+const color_t color_lemon = {255, 64, 0};
+const color_t color_sunset = {255, 40, 0};
+const color_t color_peach = {255, 32, 0};
+const color_t color_radioactive = {128, 255, 32};
+const color_t color_blacklight = {0, 0, 255};
+const color_t color_flamingo = {255, 32, 128};
+const color_t color_violet = {255, 0, 255};
+const color_t color_blueberry = {80, 0, 255};
+const color_t color_arctic = {80, 128, 128};
+const color_t color_grass = {255, 180, 0};
+
+void randomize_color(color_t color)
+{
+    color[0] = 255;
+    color[1] = 40;
+    color[2] = 0;
+    color[3] = 0;
+    color[4] = 0;
+    color[5] = 0;
+}
+
 int main()
 {
     setup_led_pins();
@@ -180,12 +202,7 @@ int main()
             PWM(color_next);
 
         // choose new, random color
-        color_next[0] = random();
-        color_next[1] = random();
-        color_next[2] = random() >> 2;
-        color_next[3] = random();
-        color_next[4] = random();
-        color_next[5] = random() >> 2;
+        randomize_color(color_next);
     }
 
     return 0;
