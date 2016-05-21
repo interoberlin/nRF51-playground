@@ -20,7 +20,6 @@
 #include <stdbool.h>
 
 #include "strings.h"
-#include "heap.h"
 
 // nRF51-specific includes
 //#include "cortex_m0.h"

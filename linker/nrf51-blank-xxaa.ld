@@ -30,7 +30,7 @@ SECTIONS
     .text :
     {
         code_begin = .;
-        nrf51_startup.o(.vectors)
+        sdk/nrf51_startup.o(.vectors)
         *(.text*)
         code_end = .;
     } > FLASH
