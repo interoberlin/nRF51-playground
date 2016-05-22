@@ -18,7 +18,7 @@
  * with a frequency of 1 MHz.
  */
 
-#include "timer.h"
+#include "timers.h"
 
 // The high frequency clock runs at 16 MHz.
 #define HFCLK               16000000UL
@@ -53,6 +53,7 @@ typedef struct
 static cc_t timer_cc[COUNTERS_PER_TIMER];
 static uint8_t ccs_active = 0;
 
+/*
 static __inline uint32_t us2ticks(uint64_t us)
 {
     return ROUNDED_DIV(us * HFCLK, TIMER_SECONDS(1) * POW2(TIMER_PRESCALE));
@@ -62,6 +63,7 @@ static __inline uint32_t ticks2us(uint64_t ticks)
 {
     return ROUNDED_DIV(ticks * TIMER_SECONDS(1) * POW2(TIMER_PRESCALE), HFCLK);
 }
+*/
 
 static __inline uint32_t get_curr_ticks()
 {
@@ -210,7 +212,7 @@ bool timer_start(int8_t id, uint32_t us, timer_callback_t callback)
     if (timer_cc[id].active)
         return false;
 
-    ticks = us2ticks(us);
+    ticks = us; //us2ticks(us);
 
     if (ticks >= 0xFFFFFF)
         return false;
@@ -266,5 +268,6 @@ uint32_t timer_get_remaining_us(int8_t id)
     else
         ticks = (0xFFFFFF - curr) + TIMER_CC(TIMER0)[id];
 
-    return ticks2us(ticks);
+    //return ticks2us(ticks);
+    return ticks;
 }

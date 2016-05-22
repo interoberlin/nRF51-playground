@@ -24,7 +24,9 @@ GDB     = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-gdb
 #
 # Compiler and Linker
 #
-CFLAGS += -std=gnu99 -Wall -g -mcpu=cortex-m0 -mthumb -mabi=aapcs -mfloat-abi=soft
+CFLAGS += -std=gnu99 -Wall -Wextra -g
+CFLAGS += -mcpu=cortex-m0 -mthumb -mabi=aapcs -mfloat-abi=soft
+CFLAGS += -ffreestanding
 # keep every function in separate section. This will allow linker to dump unused functions
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums
@@ -37,9 +39,12 @@ CHIP_REVISION = ac
 
 LINKER_SCRIPT = linker/nrf51-blank-xx$(CHIP_REVISION).ld
 LDFLAGS += -T $(LINKER_SCRIPT)
-LDFLAGS += -nostartfiles -nostdlib -lgcc -static
 LDFLAGS += -L /usr/lib/gcc/arm-none-eabi/4.8/armv6-m/
 LDFLAGS += -L /usr/lib/arm-none-eabi/newlib/armv6-m/
+LDFLAGS += --start-group
+LDFLAGS += -lgcc
+LDFLAGS += -static
+LDFLAGS += -nostartfiles -nostdlib
 
 
 #
@@ -60,10 +65,13 @@ demo_leds.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o demo_leds.o
 demo_rgbstrip.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o demo_rgbstrip.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
+demo_timers.elf: /usr/lib/arm-none-eabi/newlib/libc.a sdk/nrf51_startup.o nordic/system_nrf51.o sdk/timers.o demo_timers.o
+	$(LD) $(LDFLAGS) $^ -o $@
+
 orchid_lamp.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o orchid_lamp.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_radio.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o sdk/timer.o sdk/radio.o demo_radio.o
+demo_radio.elf: /usr/lib/arm-none-eabi/newlib/libc.a sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o sdk/timers.o sdk/radio.o demo_radio.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 %.o: %.c %s
