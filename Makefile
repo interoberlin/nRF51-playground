@@ -51,7 +51,7 @@ LDFLAGS += -nostartfiles -nostdlib
 # Build targets
 #
 
-all: demo_uart.elf demo_spi.elf demo_leds.elf demo_rgbstrip.elf orchid_lamp.elf demo_radio.elf
+all: demo_uart.elf demo_spi.elf demo_leds.elf demo_rgbstrip.elf demo_timers.elf orchid_lamp.elf demo_radio.elf
 
 demo_uart.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o demo_uart.o 
 	$(LD) $(LDFLAGS) $^ -o $@

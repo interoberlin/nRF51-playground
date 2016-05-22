@@ -41,4 +41,9 @@
 #define GPIO_SENSE_HIGH     2
 #define GPIO_SENSE_LOW      3
 
+/*
+ * Macros
+ */
+#define gpio_config_output(PIN) GPIO_DIRSET = (1 << (PIN))
+
 #endif

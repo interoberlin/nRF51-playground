@@ -39,7 +39,7 @@
 #define TIMER_EVENT_COMPARE(timer)     ((volatile uint32_t[4]) {timer+0x140})  // Compare event on CC[0] match
 
 // Registers
-#define TIMER_SHORTS(timer)             (*(volatile uint32_t*) (timer+0x200))  // Shortcut register
+#define TIMER_SHORTCUTS(timer)          (*(volatile uint32_t*) (timer+0x200))  // Shortcut register
 #define TIMER_INTENSET(timer)           (*(volatile uint32_t*) (timer+0x304))  // Enable interrupt
 #define TIMER_INTENCLR(timer)           (*(volatile uint32_t*) (timer+0x308))  // Disable interrupt
 #define TIMER_MODE(timer)               (*(volatile uint32_t*) (timer+0x504))  // Timer mode selection
@@ -61,8 +61,8 @@
 #define timer_interrupt_upon_compare_disable(timer, compare_number) TIMER_INTENCLR(timer) = TIMER_INTERRUPT_UPON_COMPARE(compare_number)
 
 // Mode
-#define TIMER_MODE_COUNTDOWN    0
-#define TIMER_MODE_COUNTUP      1
+#define TIMER_MODE_TIMER        0
+#define TIMER_MODE_COUNTER      1
 
 // Bitmode
 #define TIMER_BITMODE_16BIT     0
