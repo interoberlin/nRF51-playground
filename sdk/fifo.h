@@ -11,7 +11,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdbool.h>
 
 #include "delay.h"
 
@@ -28,6 +27,7 @@ struct fifo_s
     volatile uint8_t  buffer[FIFO_SIZE];
     volatile uint32_t num_available;
 };
+typedef struct fifo_s fifo_t;
 
 #define fifo_init(fifo) \
 { \
@@ -39,7 +39,7 @@ struct fifo_s
 #define fifo_available(fifo)    ( fifo->num_available > 0 )
 #define fifo_full(fifo)         ( fifo->num_available >= FIFO_SIZE )
 
-bool fifo_read(struct fifo_s *fifo, char *dst);
-bool fifo_write(struct fifo_s *fifo, char *c);
+bool fifo_read(fifo_t *fifo, char *dst);
+bool fifo_write(fifo_t *fifo, char *c);
 
 #endif

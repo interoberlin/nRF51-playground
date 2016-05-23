@@ -46,12 +46,15 @@ LDFLAGS += -L /usr/lib/arm-none-eabi/newlib/armv6-m/
 # Build targets
 #
 
-all: demo_uart.elf demo_spi.elf demo_leds.elf demo_rgbstrip.elf orchid_lamp.elf demo_radio.elf
+all: demo_uart.elf demo_spi.elf demo_ad53x4.elf demo_leds.elf demo_rgbstrip.elf orchid_lamp.elf demo_radio.elf
 
 demo_uart.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o demo_uart.o 
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_spi.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o libad53x4/ad53x4.o libad53x4/demo_nrf51.o
+demo_spi.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/delay.o demo_spi.o 
+	$(LD) $(LDFLAGS) $^ -o $@
+
+demo_ad53x4.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o libad53x4/ad53x4.o libad53x4/demo_ad53x4.o
 	$(LD) $(LDFLAGS) $^ -o $@	
 
 demo_leds.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o demo_leds.o
@@ -63,7 +66,7 @@ demo_rgbstrip.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o demo_rg
 orchid_lamp.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o orchid_lamp.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_radio.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o sdk/timer.o sdk/radio.o demo_radio.o
+demo_radio.elf: /usr/lib/arm-none-eabi/newlib/libc.a sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o sdk/timers.o sdk/radio.o demo_radio.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 %.o: %.c %s

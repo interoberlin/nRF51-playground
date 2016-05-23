@@ -11,7 +11,7 @@
 /*
  * Read one byte from FIFO
  */
-bool fifo_read(struct fifo_s *fifo, char *dst)
+bool fifo_read(fifo_t *fifo, char *dst)
 {
     if (!fifo_available(fifo))
         return false;
@@ -30,7 +30,7 @@ bool fifo_read(struct fifo_s *fifo, char *dst)
 /*
  * Write one byte to FIFO
  */
-bool fifo_write(struct fifo_s *fifo, char *c)
+bool fifo_write(fifo_t *fifo, char *c)
 {
     if (fifo_full(fifo))
         return false;
