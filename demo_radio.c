@@ -5,7 +5,7 @@
 #include "nrf_gpio.h"
 #include "delay.h"
 #include "uart.h"
-#include "timer.h"
+#include "timers.h"
 #include "radio.h"
 
 // enable debug messages

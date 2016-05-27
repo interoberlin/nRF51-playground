@@ -30,6 +30,8 @@ CFLAGS += -ffreestanding
 # keep every function in separate section. This will allow linker to dump unused functions
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums
+CFLAGS += -I /usr/include/newlib/
+CFLAGS += -I /usr/include/newlib/sys/
 CFLAGS += -I arm/
 CFLAGS += -I nordic/
 CFLAGS += -I sdk/
@@ -45,6 +47,7 @@ LDFLAGS += -static
 LDFLAGS += -nostartfiles -nostdlib
 LDFLAGS += --start-group
 LDFLAGS += -lgcc
+LDFLAGS += /usr/lib/arm-none-eabi/newlib/libc.a
 
 
 #
@@ -65,13 +68,13 @@ demo_leds.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o demo_leds.o
 demo_rgbstrip.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o demo_rgbstrip.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_timers.elf: /usr/lib/arm-none-eabi/newlib/libc.a sdk/nrf51_startup.o nordic/system_nrf51.o sdk/timers.o demo_timers.o
+demo_timers.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/timers.o demo_timers.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 orchid_lamp.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o orchid_lamp.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_radio.elf: /usr/lib/arm-none-eabi/newlib/libc.a sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o sdk/timers.o sdk/radio.o demo_radio.o
+demo_radio.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o sdk/timers.o sdk/radio.o demo_radio.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 %.o: %.c %s
