@@ -9,18 +9,10 @@
 /* Code execution starts in the Reset_Handler() */ 
 ENTRY(Reset_Handler)
 
-/*
- * Configure memory regions.
- *
- * According to section 3.2 of the nRF51822 datasheet,
- * the QFAC variant of the chip has
- *     256kB Flash memory in 256 pages of 1024 bytes
- *  and 32kB RAM in 4 blocks of 8kB.
- */
 MEMORY
 {
   FLASH (rx)  : ORIGIN = 0x00000000, LENGTH = 256k
-  RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 32k
+  RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 16k
 }
 
 _heap_size = 512;
@@ -38,16 +30,10 @@ SECTIONS
     .text :
     {
         code_begin = .;
-        nrf51_startup.o(.vectors)
+        sdk/nrf51_startup.o(.vectors)
         *(.text*)
         code_end = .;
     } > FLASH
-
-	.ARM.exidx : {
-	    __exidx_start = .;
-	    *(.ARM.exidx* .gnu.linkonce.armexidx.*)
-	    __exidx_end = .;
-	} > FLASH
 
     /*
      * Reserve RAM space for initialized variables and constants

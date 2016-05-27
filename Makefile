@@ -5,6 +5,7 @@
 # Author: Matthias Bock <mail@matthiasbock.net>
 # License: GNU GPLv3
 #
+
  
 #
 # Toolchain
@@ -18,38 +19,59 @@ OBJCOPY = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-objcopy
 OBJDUMP = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-objdump
 SIZE    = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-size
 GDB     = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-gdb
-OPENOCD = /home/code/openocd/src/openocd
-OPENOCD_CFG = openocd.cfg
+
 
 #
 # Compiler and Linker
 #
-CFLAGS  = -std=gnu99 -Wall -g -mcpu=cortex-m0 -mthumb -mabi=aapcs -mfloat-abi=soft
+CFLAGS += -std=gnu99 -Wall -Wextra -g
+CFLAGS += -mcpu=cortex-m0 -mthumb -mabi=aapcs -mfloat-abi=soft
+CFLAGS += -ffreestanding
 # keep every function in separate section. This will allow linker to dump unused functions
-#CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
-#CFLAGS += -fno-builtin --short-enums
-#CFLAGS += -fexceptions
+CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
+CFLAGS += -fno-builtin --short-enums
+CFLAGS += -I arm/
+CFLAGS += -I nordic/
+CFLAGS += -I sdk/
 
-LINKER_SCRIPT = nrf51.ld
-LDFLAGS  = -nostartfiles -nostdlib -static --gc-sections
+// TODO: auto-detect chip revision
+CHIP_REVISION = aa
+
+LINKER_SCRIPT = linker/nrf51-blank-xx$(CHIP_REVISION).ld
+LDFLAGS += -T $(LINKER_SCRIPT)
 LDFLAGS += -L /usr/lib/gcc/arm-none-eabi/4.8/armv6-m/
 LDFLAGS += -L /usr/lib/arm-none-eabi/newlib/armv6-m/
-LDFLAGS += --start-group -lc -lg -lm -lgcc
-LDFLAGS += -T $(LINKER_SCRIPT)
+LDFLAGS += -static
+LDFLAGS += -nostartfiles -nostdlib
+LDFLAGS += --start-group
+LDFLAGS += -lgcc
+
 
 #
 # Build targets
 #
 
-all: demo_leds.elf demo_uart.elf demo_radio.elf
+all: demo_uart.elf demo_spi.elf demo_leds.elf demo_rgbstrip.elf demo_timers.elf orchid_lamp.elf demo_radio.elf
 
-demo_leds.elf: nrf51_startup.o system_nrf51.o delay.o demo_leds.o
+demo_uart.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o demo_uart.o 
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_uart.elf: nrf51_startup.o system_nrf51.o strings.o fifo.o uart.o delay.o demo_uart.o 
+demo_spi.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o libad53x4/ad53x4.o libad53x4/demo_ad53x4.o
+	$(LD) $(LDFLAGS) $^ -o $@	
+
+demo_leds.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o demo_leds.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_radio.elf: nrf51_startup.o system_nrf51.o strings.o fifo.o uart.o delay.o timer.o radio.o demo_radio.o
+demo_rgbstrip.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o demo_rgbstrip.o
+	$(LD) $(LDFLAGS) $^ -o $@
+
+demo_timers.elf: /usr/lib/arm-none-eabi/newlib/libc.a sdk/nrf51_startup.o nordic/system_nrf51.o sdk/timers.o demo_timers.o
+	$(LD) $(LDFLAGS) $^ -o $@
+
+orchid_lamp.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o orchid_lamp.o
+	$(LD) $(LDFLAGS) $^ -o $@
+
+demo_radio.elf: /usr/lib/arm-none-eabi/newlib/libc.a sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o sdk/timers.o sdk/radio.o demo_radio.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 %.o: %.c %s
@@ -62,29 +84,14 @@ demo_radio.elf: nrf51_startup.o system_nrf51.o strings.o fifo.o uart.o delay.o t
 	$(OBJCOPY) -Obinary $< $@
 
 clean:
-	rm -f *.o *.out *.bin *.elf *.hex *.map main demo_leds demo_uart demo_radio
+	rm -f *.o */*.o *.out *.bin *.elf *.hex *.map
 
 
-erase:
-	$(OPENOCD) -c "set WORKAREASIZE 0;" -f $(OPENOCD_CFG) -c "init; reset halt; nrf51 mass_erase; shutdown;"
+#
+# Debugger
+#
+OPENOCD_CFG_DIR = debug/
+# workaround: problems because the folder is named like the target in the subfolder's Makefile
+.PHONY: debug
+include debug/Makefile
 
-flash: $(BIN)
-	$(OPENOCD) -c "set WORKAREASIZE 0;" -f $(OPENOCD_CFG) -c "init; reset halt; program $(BIN) $(STARTADDRESS) verify; shutdown;"
-
-pinreset:
-	# mww: write word to memory
-	# das funktioniert so nicht, falsche Adresse:
-	#$(OPENOCD) -f $(OPENOCD_CFG) -c "init; reset halt; sleep 1; mww phys 0x4001e504 2; mww 0x40000544 1; reset; shutdown;"
-
-debug:
-	$(OPENOCD) -c "set WORKAREASIZE 0;" -f $(OPENOCD_CFG)
-	
-gdb:
-	echo "target remote localhost:3333    \n\
-          monitor reset halt              \n\
-          file $(ELF)                     \n\
-          load                            \n\
-          b _start                        \n\
-          monitor reset                   \n\
-          continue                        \n\
-          set interactive-mode on" | $(GDB)

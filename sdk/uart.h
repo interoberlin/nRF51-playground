@@ -12,10 +12,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <string.h>
 
 #include "cortex_m0.h"
 
+#include "strings.h"
 #include "fifo.h"
 
 /*
@@ -146,6 +146,7 @@
 /*
  * Functions
  */
+uint32_t strlen(char* s);
 
 void    uart_init_fifo();
 void    uart_send(char* buffer, uint8_t length);

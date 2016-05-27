@@ -2,9 +2,8 @@
 .*.swp
 .lock.*
 
-main
-
 *.o
+*/*.o
 *.out
 *.elf
 *.bin

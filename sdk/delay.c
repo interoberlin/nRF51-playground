@@ -35,6 +35,8 @@ void delay_us(uint32_t us)
 
 void delay_ms(uint32_t ms)
 {
+    // TODO: use Timer instead of NOPs for longer timespans,
+    //       so we can shut down CPU and save some power
     for (uint32_t i=0; i<ms; i++)
         delay_us(999);
 }
