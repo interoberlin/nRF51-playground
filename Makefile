@@ -46,6 +46,8 @@ LDFLAGS += -nostartfiles -nostdlib
 LDFLAGS += --start-group
 LDFLAGS += -lgcc
 
+SOFTDEVICE = nordic/softdevice/s110_nrf51822_7.3.0_softdevice.hex
+
 
 #
 # Build targets
@@ -73,6 +75,17 @@ orchid_lamp.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o orchid_la
 
 demo_radio.elf: /usr/lib/arm-none-eabi/newlib/libc.a sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o sdk/timers.o sdk/radio.o demo_radio.o
 	$(LD) $(LDFLAGS) $^ -o $@
+
+define LOAD_SOFTDEVICE_COMMAND
+target remote localhost:3333
+monitor reset halt
+load
+endef
+export LOAD_SOFTDEVICE_COMMAND
+
+# Flash the SoftDevice HEX-file into the chip
+softdevice:
+	echo "$$LOAD_SOFTDEVICE_COMMAND" | $(GDB) $(SOFTDEVICE)
 
 %.o: %.c %s
 	$(CC) $(CFLAGS) -c $< -o $@
