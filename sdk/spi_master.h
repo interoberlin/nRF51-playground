@@ -66,8 +66,8 @@
  */
 // Enable/Disable
 #define spi_enabled(spi_device)                        (SPI_ENABLE(spi_device) & 0x07 == 1)  // beware: a value of 5 means TWI is enabled
-#define spi_enable(spi_device)                          SPI_ENABLE(spi_device) = (SPI_ENABLE(spi_device) & (~0x07)) | 1
-#define spi_disable(spi_device)                         SPI_ENABLE(spi_device) = (SPI_ENABLE(spi_device) & (~0x07))
+#define spi_enable(spi_device)                          SPI_ENABLE(spi_device) = 1
+#define spi_disable(spi_device)                         SPI_ENABLE(spi_device) = 0
 
 // Interrupts
 #define spi_interrupt_upon_READY(spi_device)          ((SPI_INTEN   (spi_device)) & 0x04) >> 2)
