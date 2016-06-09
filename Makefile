@@ -20,6 +20,7 @@ OBJDUMP = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-objdump
 SIZE    = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-size
 GDB     = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-gdb
 
+newlib  = /usr/lib/arm-none-eabi/newlib/libc.a
 
 #
 # Compiler and Linker
@@ -34,7 +35,7 @@ CFLAGS += -I arm/
 CFLAGS += -I nordic/
 CFLAGS += -I sdk/
 
-// TODO: auto-detect chip revision
+# TODO: auto-detect chip revision
 CHIP_REVISION = aa
 
 LINKER_SCRIPT = linker/nrf51-blank-xx$(CHIP_REVISION).ld
@@ -46,6 +47,10 @@ LDFLAGS += -nostartfiles -nostdlib
 LDFLAGS += --start-group
 LDFLAGS += -lgcc
 
+# required for semihosting 
+CFLAGS  += --specs=rdimon.specs
+LDFLAGS += -lrdimon 
+
 
 #
 # Build targets
@@ -56,7 +61,7 @@ all: demo_uart.elf demo_spi.elf demo_ad53x4.elf demo_leds.elf demo_rgbstrip.elf 
 demo_uart.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o demo_uart.o 
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_spi.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/delay.o demo_spi.o 
+demo_spi.elf: $(newlib) sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/delay.o demo_spi.o 
 	$(LD) $(LDFLAGS) $^ -o $@
 
 demo_ad53x4.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o libad53x4/ad53x4.o libad53x4/demo_ad53x4.o
@@ -74,7 +79,7 @@ demo_timers.elf: /usr/lib/arm-none-eabi/newlib/libc.a sdk/nrf51_startup.o nordic
 orchid_lamp.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/delay.o orchid_lamp.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-demo_radio.elf: /usr/lib/arm-none-eabi/newlib/libc.a sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o sdk/timers.o sdk/radio.o demo_radio.o
+demo_radio.elf: $(newlib) sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o sdk/timers.o sdk/radio.o demo_radio.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
 %.o: %.c %s

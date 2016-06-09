@@ -75,4 +75,6 @@ SECTIONS
 
     stack_begin = .;
     stack_end = ORIGIN(RAM) + LENGTH(RAM);
+    
+    end = .;
 }
