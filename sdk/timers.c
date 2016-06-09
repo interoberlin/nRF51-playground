@@ -18,7 +18,7 @@
  * with a frequency of 1 MHz.
  */
 
-#include "timer.h"
+#include "timers.h"
 
 // The high frequency clock runs at 16 MHz.
 #define HFCLK               16000000UL
@@ -82,14 +82,15 @@ static __inline uint32_t get_curr_ticks()
 
 static __inline void set_timer(uint8_t id, uint32_t ticks)
 {
-    // program countdown
+    // program timeout
     TIMER_CC(TIMER0)[id] = ticks;
 
     // enable this compare number's interrupt
     timer_interrupt_upon_compare_enable(TIMER0, id);
 }
 
-void TIMER0_Handler()
+//void TIMER0_Handler()
+void stub()
 {
     uint32_t curr = get_curr_ticks();
     uint8_t id_mask = 0;
@@ -153,7 +154,7 @@ bool timer_init()
             asm("nop");
     }
 
-    TIMER_MODE(TIMER0)      = TIMER_MODE_COUNTDOWN;
+    TIMER_MODE(TIMER0)      = TIMER_MODE_TIMER;
     TIMER_BITMODE(TIMER0)   = TIMER_BITMODE_24BIT;
     TIMER_PRESCALER(TIMER0) = TIMER_PRESCALE;
 
@@ -167,7 +168,7 @@ bool timer_init()
 }
 
 /**
- * Create a new timer_cc (countdown) in TIMER0
+ * Create a new timer_cc in TIMER0
  *
  * @Returns
  *      the number of the timer_cc, if successfull
