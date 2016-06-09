@@ -1,3 +1,12 @@
+
+/**
+ * GPIO  library
+ * for the Nordic Semiconductor nRF51 series
+ *
+ * Author: Matthias Bock <mail@matthiasbock.net>
+ * License: GNU GPLv3
+ */
+
 #ifndef GPIO_H
 #define GPIO_H
 
@@ -44,6 +53,10 @@
 /*
  * Macros
  */
+#define gpio_config_input(PIN)  GPIO_DIRCLR = (1 << (PIN))
 #define gpio_config_output(PIN) GPIO_DIRSET = (1 << (PIN))
+#define gpio_set(PIN)           GPIO_OUTSET = (1 << (PIN))
+#define gpio_clear(PIN)         GPIO_OUTCLR = (1 << (PIN))
+#define gpio_toggle(PIN)        GPIO_OUT   ^= (1 << (PIN))
 
 #endif
