@@ -17,7 +17,7 @@
 #define PIN_SPI_CLOCK 25
 
 fifo_t buffer;
-fifo_t *main_buffer;
+fifo_t* my_buffer;
 
 /**
  * Fills the referenced FIFO with <count> random bytes
@@ -37,7 +37,28 @@ void write_byte_from_fifo_to_spi()
 {
     char c;
     fifo_read(&buffer, &c);
-    spi_write(my_spi, 0x37);
+    spi_write(my_spi, c);
+}
+
+void setup_spi()
+{
+    // make sure, SPI is disabled
+    spi_disable(my_spi);
+
+    // select pins to use
+    spi_pin_select(my_spi, PIN_SPI_CLOCK, PIN_SPI_DATA, SPI_PIN_DISABLED);
+
+    // configure transmission parameters
+    SPI_CONFIG(my_spi)      = SPI_BITORDER_MSBFIRST
+                            | SPI_CLOCKPOLARITY_ACTIVELOW
+                            | SPI_CLOCKPHASE_LEADING;
+
+    // configure transmission speed
+    SPI_FREQUENCY(my_spi)   = SPI_FREQUENCY_250K;
+
+    // configure interrupts
+    spi_interrupt_upon_READY_enable(my_spi);
+    interrupt_enable(INTERRUPT_SPI);
 }
 
 /**
@@ -48,7 +69,8 @@ void spi_transmit_fifo(fifo_t* buffer)
 //    if (spi_still_transmitting_fifo(my_spi))
 //        return;
 
-    main_buffer = buffer;
+    //my_buffer = &buffer;
+    setup_spi();
     write_byte_from_fifo_to_spi();
     spi_enable(my_spi);
 }
@@ -63,16 +85,10 @@ void SPI0_TWI0_Handler()
         // event must be cleared
         SPI_EVENT_READY(my_spi) = 0;
 
-//        gpio_toggle(PIN_LED);
-//        spi_write(my_spi, 0x37);
-//        spi_enable(my_spi);
-//        gpio_set(PIN_LED);
-
-        if (fifo_available(main_buffer))
+        if (fifo_is_byte_available(my_buffer))
         {
             // enqueue next byte for transmission
-            //write_byte_from_fifo_to_spi();
-            spi_write(my_spi, 0x3c);
+            write_byte_from_fifo_to_spi();
         }
         else
         {
@@ -89,36 +105,29 @@ void setup()
 {
     //random_init();
 
+    my_buffer = &buffer;
+    fifo_init(my_buffer);
+
     gpio_config_output(PIN_LED);
     gpio_clear(PIN_LED);
 
-    // setup SPI
-    // pins, frequency, etc.
-    spi_disable(my_spi);
-    spi_pin_select(my_spi, PIN_SPI_CLOCK, PIN_SPI_DATA, SPI_PIN_DISABLED);
-    // configure SPI parameters
-    SPI_CONFIG(my_spi)      = SPI_BITORDER_MSBFIRST
-                            | SPI_CLOCKPOLARITY_ACTIVELOW
-                            | SPI_CLOCKPHASE_LEADING;
-    SPI_FREQUENCY(my_spi)   = SPI_FREQUENCY_4M;
-    interrupt_enable(INTERRUPT_SPI);
-    spi_interrupt_upon_READY_enable(my_spi);
+    setup_spi();
 }
 
 void loop()
 {
+    gpio_set(PIN_LED);
+    delay_ms(100);
+
     generate_random_fifo(&buffer, 3);
     spi_transmit_fifo(&buffer);
 
-    gpio_set(PIN_LED);
-    delay_ms(2000);
     gpio_clear(PIN_LED);
-    delay_ms(2000);
+    delay_ms(1000);
 }
 
 int main()
 {
-    //printf("Hello world!\n");
     setup();
     while (true)
         loop();

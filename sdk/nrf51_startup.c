@@ -8,6 +8,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "cortex_m0.h"
 
 /*
@@ -183,4 +184,5 @@ void Default_Handler()
     uint32_t icsr = ICSR;
     uint32_t interrupt_active = INTACTIVE;
     uint32_t interrupt_pending = INTPENDING;
+    bool     HardFault = (VECTACTIVE == 3);
 }
