@@ -7,3 +7,6 @@
 [submodule "nordic/softdevice"]
 	path = nordic/softdevice
 	url = git@git.interoberlin.de:/home/git/repositories/matthias/nRF51-SoftDevice.git
+[submodule "debug"]
+	path = debug
+	url = git@github.com:matthiasbock/nRF51-debug.git
