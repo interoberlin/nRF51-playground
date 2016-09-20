@@ -4,3 +4,6 @@
 [submodule "debug"]
 	path = debug
 	url = git@github.com:matthiasbock/nRF51-debug.git
+[submodule "nordic"]
+	path = nordic
+	url = git@github.com:matthiasbock/nRF51-nordic.git
