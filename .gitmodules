@@ -10,3 +10,6 @@
 [submodule "sdk"]
 	path = sdk
 	url = git@github.com:matthiasbock/nRF51-sdk.git
+[submodule "arm"]
+	path = arm
+	url = git@github.com:matthiasbock/nRF51-arm.git
