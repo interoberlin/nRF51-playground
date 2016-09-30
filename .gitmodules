@@ -7,3 +7,6 @@
 [submodule "nordic"]
 	path = nordic
 	url = git@github.com:matthiasbock/nRF51-nordic.git
+[submodule "sdk"]
+	path = sdk
+	url = git@github.com:matthiasbock/nRF51-sdk.git
