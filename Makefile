@@ -31,14 +31,15 @@ CFLAGS += -ffreestanding
 # keep every function in separate section. This will allow linker to dump unused functions
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums
-CFLAGS += -I arm/
+CFLAGS += -I nordic/arm/
 CFLAGS += -I nordic/
 CFLAGS += -I sdk/
+CFLAGS += -I sdk/arduino/
 
 # TODO: auto-detect chip revision
 CHIP_REVISION = aa
 
-LINKER_SCRIPT = linker/nrf51-blank-xx$(CHIP_REVISION).ld
+LINKER_SCRIPT = sdk/linker/nrf51-blank-xx$(CHIP_REVISION).ld
 LDFLAGS += -T $(LINKER_SCRIPT)
 LDFLAGS += -L /usr/lib/gcc/arm-none-eabi/4.8/armv6-m/
 LDFLAGS += -L /usr/lib/arm-none-eabi/newlib/armv6-m/
@@ -112,8 +113,8 @@ clean:
 #
 # Debugger
 #
-OPENOCD_CFG_DIR = debug/
+OPENOCD_CFG_DIR = sdk/debug/
 # workaround: problems because the folder is named like the target in the subfolder's Makefile
 .PHONY: debug
-include debug/Makefile
+include sdk/debug/Makefile
 

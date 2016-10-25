@@ -1,15 +1,9 @@
 [submodule "libad53x4"]
 	path = libad53x4
 	url = git@github.com:matthiasbock/libad53x4.git
-[submodule "debug"]
-	path = debug
-	url = git@github.com:matthiasbock/nRF51-debug.git
 [submodule "nordic"]
 	path = nordic
 	url = git@github.com:matthiasbock/nRF51-nordic.git
 [submodule "sdk"]
 	path = sdk
 	url = git@github.com:matthiasbock/nRF51-sdk.git
-[submodule "arm"]
-	path = arm
-	url = git@github.com:matthiasbock/nRF51-arm.git
